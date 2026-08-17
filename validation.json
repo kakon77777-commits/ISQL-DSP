@@ -1,103 +1,124 @@
 {
-  "release": "ISQL-DSR Runtime v0.8.0",
-  "date": "2026-08-18",
-  "canonical_artifacts": [
-    ".isqlr",
-    ".isqln",
-    ".isqle",
-    ".isqlb",
-    ".isqlp"
-  ],
-  "vm_program_format_version": 8,
-  "legacy_vm_program_version_supported": 7,
-  "core_transport": "EXEC/R4/DSRV",
+  "package": "ISQL_DSR_Runtime",
+  "version": "0.9.0",
+  "canonical_vm_artifact": ".isqlp",
   "source_tests": {
-    "passed": 135,
-    "failed": 0,
-    "command": "PYTHONPATH=src python -m unittest discover -s tests -q"
+    "count": 158,
+    "status": "PASS",
+    "log": "validation/source_unittest_final.txt",
+    "source_pythonpath": "src"
   },
   "installed_wheel_tests": {
-    "passed": 135,
-    "failed": 0,
-    "source": "site-packages",
-    "python": "3.13"
+    "count": 158,
+    "status": "PASS",
+    "log": "validation/installed_unittest.txt",
+    "source_pythonpath_used": false
   },
-  "wheel_build": {
-    "method": "python -m pip wheel . --no-deps --no-build-isolation -w dist",
-    "network_required": false
+  "wheel": {
+    "path": "dist/isql_dsr_runtime-0.9.0-py3-none-any.whl",
+    "sha256": "be421eb8fbc1ac53cd2a22401fa3fda48d4a191c95dc13ae508e4a6b6e2ba818",
+    "size_bytes": 73040
   },
-  "wheel_sha256": "138d114391b812db747454c63c78abbc3571e95323f83d45bcbaf575a7202eb7",
   "core_v04_parser": {
-    "accepted": true,
     "domain": "EXEC",
     "resolution": "R4",
     "control": "DSRV",
     "payload_digits_only": true,
-    "exact_roundtrip": true
+    "roundtrip_equal": true,
+    "wire_length": 495,
+    "status": "PASS"
   },
-  "examples": {
-    "schema": "isql.dsr-v08-release-example/v0.8",
-    "registry_revision": 25,
-    "registry_symbols": 25,
-    "registry_bytes": 428,
-    "call": {
-      "child_program_bytes": 172,
-      "root_program_bytes": 146,
-      "alpha_genesis_hash": "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2",
-      "beta_genesis_hash": "93258ebde1e09b3e98274e5eb84374cfbc2f483591fea6624f08a44229e0b422",
-      "alpha_final_hash": "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2",
-      "beta_final_hash": "4b0533959b2b1e9524317480396c79ae24765a18aba50b2a37806c95ecb56798",
-      "argument_register_ref": 22,
-      "return_register_ref": 23,
-      "return_value": {
-        "kind": "point",
-        "value": 5
-      },
-      "beta_written_value": {
-        "kind": "point",
-        "value": 9
-      }
-    },
-    "parallel": {
-      "program_bytes": 141,
-      "batches": [
-        [
-          8,
-          9
-        ]
-      ],
-      "serial_final_hashes": [
-        [
-          14,
-          "aaf917522eb7da58753e95b72aebec47a5d3b70b3f4563b9d77f57a3ced83d9e"
-        ],
-        [
-          15,
-          "3a8268f78c01f2b5263d26c59ca48587fd4188c9fe3e59601dec0f3431f4a079"
-        ]
-      ],
-      "parallel_final_hashes": [
-        [
-          14,
-          "aaf917522eb7da58753e95b72aebec47a5d3b70b3f4563b9d77f57a3ced83d9e"
-        ],
-        [
-          15,
-          "3a8268f78c01f2b5263d26c59ca48587fd4188c9fe3e59601dec0f3431f4a079"
-        ]
-      ],
-      "bit_identical_hashes": true
-    },
-    "core": {
-      "domain": "EXEC",
-      "resolution": "R4",
+  "math_delimiters": {
+    "files_checked": [
+      "README.md",
+      "RELEASE_NOTES.md",
+      "AI_HANDOFF.md",
+      "docs/NATIVE_VM_v0.9.md",
+      "docs/superpowers/specs/2026-08-18-v09-native-compute-design.md",
+      "docs/superpowers/plans/2026-08-18-v09-native-compute-plan.md"
+    ],
+    "forbidden_hits": [],
+    "status": "PASS"
+  },
+  "example": {
+    "branch_module_bytes": 140,
+    "core_wire": {
       "control": "DSRV",
-      "payload_digits_only": true
+      "digits_only": true,
+      "domain": "EXEC",
+      "resolution": "R4"
     },
-    "human_schema_label_leaks_in_canonical_artifacts": {}
+    "false_branch_return": {
+      "kind": "point",
+      "value": 60
+    },
+    "false_trace": [
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ]
+    ],
+    "genesis_bytes": 46,
+    "identifier_leaks": {
+      "branch-module": [],
+      "depends_on": [],
+      "instruction_ref": [],
+      "predicate_register_ref": [],
+      "program_ref": [],
+      "r:left": [],
+      "r:result": [],
+      "register_guards": []
+    },
+    "linked_batches": [
+      [
+        4
+      ],
+      [
+        5
+      ],
+      [
+        6
+      ],
+      [
+        7
+      ]
+    ],
+    "linked_bytes": 159,
+    "registry_bytes": 189,
+    "registry_symbols": 15,
+    "scale_module_bytes": 102,
+    "true_branch_return": {
+      "kind": "point",
+      "value": 30
+    },
+    "true_trace": [
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        7
+      ]
+    ]
   },
-  "canonical_math_delimiters": {
-    "forbidden_legacy_delimiters_found": false
+  "semantic_contract": {
+    "predicate_false": "skip instruction; no transaction failure",
+    "register_guard_false": "abort transaction fail-closed",
+    "branching_model": "predicated causal DAG; no program-counter jump",
+    "linking": "static native program composition; no new persistent artifact"
   },
   "status": "PASS"
 }

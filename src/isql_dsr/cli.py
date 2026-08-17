@@ -18,6 +18,7 @@ from .diff import diff_states
 from .errors import DSRError
 from .events import TransitionEvent
 from .fusion import SemanticProposal
+from .linker import link_vm_programs
 from .machine import (
     compile_registered_state, decode_registered_state, encode_registered_state,
     inspect_registered_state, registered_state_hash,
@@ -130,7 +131,7 @@ def _emit(value: Any) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.8 (register dataflow and deterministic parallel native VM)")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.9 (typed register compute, predicated DAG control, and static linking)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis inspection DSR state")
@@ -255,7 +256,16 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--genesis-native", required=True)
     sp.add_argument("--program", required=True)
 
-    sp = sub.add_parser("vm-run", help="Execute v0.8 register/scoped-capability .isqlp transaction across registered state slots")
+    sp = sub.add_parser("vm-link", help="Statically compose native v0.9 .isqlp DAG modules")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--program-ref", type=int, required=True)
+    sp.add_argument("--module", action="append", required=True)
+    sp.add_argument("--argument-register", type=int, action="append", default=[])
+    sp.add_argument("--return-register", type=int, action="append", default=[])
+    sp.add_argument("--parallel-modules", action="store_true", help="preserve modules without adding sequential causal edges")
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("vm-run", help="Execute v0.9 typed-register/scoped-capability .isqlp transaction across registered state slots")
     sp.add_argument("--registry", required=True)
     sp.add_argument("--program", required=True)
     sp.add_argument("--state", action="append", required=True, help="numeric SLOT_REF=PATH")
@@ -266,7 +276,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--parallel", action="store_true", help="execute hazard-free instruction batches concurrently")
     sp.add_argument("--out-dir", required=True)
 
-    sp = sub.add_parser("vm-bridge", help="Export Core-parseable EXEC/R4/DSRV wire for a v0.7 VM program")
+    sp = sub.add_parser("vm-bridge", help="Export Core-parseable EXEC/R4/DSRV wire for a native VM program")
     sp.add_argument("--registry", required=True)
     sp.add_argument("--program", required=True)
     sp.add_argument("--state", action="append", required=True, help="numeric SLOT_REF=PATH")
@@ -570,6 +580,27 @@ def main(argv: list[str] | None = None) -> int:
             _emit(to_registered_core_program_envelope(program, genesis).to_dict())
             return 0
 
+        if args.command == "vm-link":
+            registry = _read_registry(args.registry)
+            modules = tuple(_read_vm_program(path, registry) for path in args.module)
+            linked = link_vm_programs(
+                registry, args.program_ref, modules, sequential=not args.parallel_modules,
+                argument_registers=tuple(args.argument_register),
+                return_registers=tuple(args.return_register),
+            )
+            raw = encode_vm_program(linked)
+            Path(args.out).write_bytes(raw)
+            _emit({
+                "schema": "isql.dsr-vm-link-result/v0.9",
+                "program_ref": linked.program_ref,
+                "module_count": len(modules),
+                "instruction_count": len(linked.instructions),
+                "sequential": not args.parallel_modules,
+                "bytes": len(raw),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
         if args.command == "vm-run":
             registry = _read_registry(args.registry)
             program = _read_vm_program(args.program, registry)
@@ -592,7 +623,7 @@ def main(argv: list[str] | None = None) -> int:
                 outputs[str(slot_ref)] = str(path)
             receipt = result.receipt
             _emit({
-                "schema": "isql.dsr-vm-transaction-result/v0.8",
+                "schema": "isql.dsr-vm-transaction-result/v0.9",
                 "status": receipt.status,
                 "program_ref": receipt.program_ref,
                 "base_hashes": [list(x) for x in receipt.base_hashes],

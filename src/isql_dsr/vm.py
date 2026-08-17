@@ -21,8 +21,9 @@ from .registry import NativeSymbolRegistry, SymbolNamespace
 
 
 VM_PROGRAM_MAGIC = bytes((0xD5, 0x51, 0xE2, 0x07))
-VM_PROGRAM_FORMAT_VERSION = 8
+VM_PROGRAM_FORMAT_VERSION = 9
 VM_PROGRAM_LEGACY_VERSION = 7
+VM_PROGRAM_V8_VERSION = 8
 
 BIND_EXACT = 1
 BIND_DYNAMIC = 2
@@ -41,11 +42,24 @@ VM_OP_RETURN = 1002
 VM_OP_LOAD_AXIS = 1101
 VM_OP_STORE_AXIS = 1102
 
+VM_OP_CONST = 1201
+VM_OP_MOVE = 1202
+VM_OP_ADD = 1211
+VM_OP_SUB = 1212
+VM_OP_MUL = 1213
+VM_OP_DIV = 1214
+VM_OP_EQ = 1221
+VM_OP_LT = 1222
+VM_OP_LE = 1223
+
 GUARD_STATE_HASH_EQ = 1
 GUARD_AXIS_PRESENT = 2
 GUARD_AXIS_ABSENT = 3
 GUARD_RELATION_STATUS = 4
 GUARD_AXIS_VALUE_EQ = 5
+
+REG_GUARD_INITIALIZED = 1
+REG_GUARD_VALUE_EQ = 2
 
 _ZERO_HASH = "0" * 64
 
@@ -82,7 +96,7 @@ def _write_blob(out: bytearray, raw: bytes) -> None:
 
 
 def _expected_effect_mask(opcode: int) -> int:
-    if opcode in {VM_OP_CALL, VM_OP_RETURN, VM_OP_LOAD_AXIS}:
+    if opcode in {VM_OP_CALL, VM_OP_RETURN, VM_OP_LOAD_AXIS, VM_OP_CONST, VM_OP_MOVE, VM_OP_ADD, VM_OP_SUB, VM_OP_MUL, VM_OP_DIV, VM_OP_EQ, VM_OP_LT, VM_OP_LE}:
         return 0
     if opcode == VM_OP_STORE_AXIS:
         return EFFECT_AXIS
@@ -164,6 +178,97 @@ def _decode_store_axis_payload(payload: bytes) -> tuple[int, int, int, float, in
         raise DSRExecutionError("VM_STORE_AXIS_PAYLOAD_INVALID")
     return key_ref, domain_ref, register_ref, uncertainty, resolution
 
+
+
+def encode_register_const_payload(destination_register_ref: int, value: object) -> bytes:
+    destination_register_ref = _positive(destination_register_ref, "VM_CONST_REGISTER_INVALID")
+    raw = _encode_semantic_value(value)
+    out = bytearray(encode_uvarint(destination_register_ref))
+    _write_blob(out, raw)
+    return bytes(out)
+
+
+def _decode_register_const_payload(payload: bytes) -> tuple[int, object]:
+    try:
+        register_ref, offset = decode_uvarint(payload, 0)
+        raw, offset = _read_blob(payload, offset)
+        value, used = _decode_semantic_value(raw, 0)
+    except Exception as exc:
+        raise DSRExecutionError("VM_CONST_PAYLOAD_INVALID") from exc
+    if register_ref <= 0 or offset != len(payload) or used != len(raw):
+        raise DSRExecutionError("VM_CONST_PAYLOAD_INVALID")
+    return register_ref, value
+
+
+def encode_register_move_payload(source_register_ref: int, destination_register_ref: int) -> bytes:
+    return encode_uvarint(_positive(source_register_ref, "VM_MOVE_SOURCE_INVALID")) + encode_uvarint(
+        _positive(destination_register_ref, "VM_MOVE_DESTINATION_INVALID")
+    )
+
+
+def _decode_register_move_payload(payload: bytes) -> tuple[int, int]:
+    try:
+        source, offset = decode_uvarint(payload, 0)
+        destination, offset = decode_uvarint(payload, offset)
+    except Exception as exc:
+        raise DSRExecutionError("VM_MOVE_PAYLOAD_INVALID") from exc
+    if source <= 0 or destination <= 0 or offset != len(payload):
+        raise DSRExecutionError("VM_MOVE_PAYLOAD_INVALID")
+    return source, destination
+
+
+def encode_register_binary_payload(left_register_ref: int, right_register_ref: int, destination_register_ref: int) -> bytes:
+    return (
+        encode_uvarint(_positive(left_register_ref, "VM_BINARY_LEFT_INVALID"))
+        + encode_uvarint(_positive(right_register_ref, "VM_BINARY_RIGHT_INVALID"))
+        + encode_uvarint(_positive(destination_register_ref, "VM_BINARY_DESTINATION_INVALID"))
+    )
+
+
+def _decode_register_binary_payload(payload: bytes) -> tuple[int, int, int]:
+    try:
+        left, offset = decode_uvarint(payload, 0)
+        right, offset = decode_uvarint(payload, offset)
+        destination, offset = decode_uvarint(payload, offset)
+    except Exception as exc:
+        raise DSRExecutionError("VM_BINARY_PAYLOAD_INVALID") from exc
+    if min(left, right, destination) <= 0 or offset != len(payload):
+        raise DSRExecutionError("VM_BINARY_PAYLOAD_INVALID")
+    return left, right, destination
+
+
+def _numeric_point(value: object) -> tuple[int | float, bool]:
+    from .model import PointValue
+    if not isinstance(value, PointValue) or isinstance(value.value, bool) or not isinstance(value.value, (int, float)):
+        raise DSRExecutionError("VM_NUMERIC_TYPE_REQUIRED")
+    return value.value, isinstance(value.value, int)
+
+
+def _execute_register_binary(opcode: int, left: object, right: object) -> object:
+    from .model import PointValue
+    if opcode == VM_OP_EQ:
+        return PointValue(left == right)
+    lv, lint = _numeric_point(left)
+    rv, rint = _numeric_point(right)
+    if opcode == VM_OP_ADD:
+        value = lv + rv
+    elif opcode == VM_OP_SUB:
+        value = lv - rv
+    elif opcode == VM_OP_MUL:
+        value = lv * rv
+    elif opcode == VM_OP_DIV:
+        if rv == 0:
+            raise DSRExecutionError("VM_DIVISION_BY_ZERO")
+        value = float(lv) / float(rv)
+    elif opcode == VM_OP_LT:
+        return PointValue(lv < rv)
+    elif opcode == VM_OP_LE:
+        return PointValue(lv <= rv)
+    else:
+        raise DSRExecutionError("VM_REGISTER_OPCODE_INVALID")
+    if opcode != VM_OP_DIV and lint and rint:
+        return PointValue(int(value))
+    return PointValue(float(value))
 
 
 def encode_vm_call_payload(
@@ -252,6 +357,39 @@ def decode_vm_call_payload(
 
 
 @dataclass(frozen=True, slots=True)
+class NativeRegisterGuard:
+    guard_type: int
+    register_ref: int
+    payload: bytes = b""
+
+    def __post_init__(self) -> None:
+        if self.guard_type not in {REG_GUARD_INITIALIZED, REG_GUARD_VALUE_EQ}:
+            raise DSRValidationError("VM_REGISTER_GUARD_TYPE_INVALID")
+        object.__setattr__(self, "register_ref", _positive(self.register_ref, "VM_REGISTER_GUARD_REF_INVALID"))
+        if not isinstance(self.payload, (bytes, bytearray, memoryview)):
+            raise DSRValidationError("VM_REGISTER_GUARD_PAYLOAD_BYTES_REQUIRED")
+        raw = bytes(self.payload)
+        if self.guard_type == REG_GUARD_INITIALIZED and raw:
+            raise DSRValidationError("VM_REGISTER_GUARD_INITIALIZED_PAYLOAD_INVALID")
+        if self.guard_type == REG_GUARD_VALUE_EQ:
+            try:
+                _, used = _decode_semantic_value(raw, 0)
+            except Exception as exc:
+                raise DSRValidationError("VM_REGISTER_GUARD_VALUE_INVALID") from exc
+            if used != len(raw):
+                raise DSRValidationError("VM_REGISTER_GUARD_VALUE_TRAILING_DATA")
+        object.__setattr__(self, "payload", raw)
+
+
+def register_guard_initialized(register_ref: int) -> NativeRegisterGuard:
+    return NativeRegisterGuard(REG_GUARD_INITIALIZED, register_ref, b"")
+
+
+def register_guard_value_eq(register_ref: int, value: object) -> NativeRegisterGuard:
+    return NativeRegisterGuard(REG_GUARD_VALUE_EQ, register_ref, _encode_semantic_value(value))
+
+
+@dataclass(frozen=True, slots=True)
 class NativeGuard:
     guard_type: int
     payload: bytes = b""
@@ -310,6 +448,9 @@ class VMInstruction:
     depends_on: tuple[int, ...] = ()
     guards: tuple[NativeGuard, ...] = ()
     payload: bytes = b""
+    register_guards: tuple[NativeRegisterGuard, ...] = ()
+    predicate_register_ref: int = 0
+    predicate_expected: bool = True
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "instruction_ref", _positive(self.instruction_ref, "VM_INSTRUCTION_REF_INVALID"))
@@ -338,10 +479,25 @@ class VMInstruction:
         if not isinstance(self.payload, (bytes, bytearray, memoryview)):
             raise DSRValidationError("VM_PAYLOAD_BYTES_REQUIRED")
         object.__setattr__(self, "payload", bytes(self.payload))
+        if not isinstance(self.register_guards, tuple) or not all(isinstance(x, NativeRegisterGuard) for x in self.register_guards):
+            raise DSRValidationError("VM_REGISTER_GUARDS_INVALID")
+        object.__setattr__(self, "register_guards", tuple(self.register_guards))
+        if not isinstance(self.predicate_register_ref, int) or isinstance(self.predicate_register_ref, bool) or self.predicate_register_ref < 0:
+            raise DSRValidationError("VM_PREDICATE_REGISTER_INVALID")
+        if not isinstance(self.predicate_expected, bool):
+            raise DSRValidationError("VM_PREDICATE_EXPECTED_INVALID")
+        if self.predicate_register_ref == 0 and self.predicate_expected is not True:
+            raise DSRValidationError("VM_PREDICATE_EXPECTED_NONCANONICAL")
         if self.opcode == VM_OP_RETURN and self.payload:
             raise DSRValidationError("VM_RETURN_PAYLOAD_INVALID")
         if self.opcode == VM_OP_CALL:
             decode_vm_call_payload(self.payload)
+        elif self.opcode == VM_OP_CONST:
+            _decode_register_const_payload(self.payload)
+        elif self.opcode == VM_OP_MOVE:
+            _decode_register_move_payload(self.payload)
+        elif self.opcode in {VM_OP_ADD, VM_OP_SUB, VM_OP_MUL, VM_OP_DIV, VM_OP_EQ, VM_OP_LT, VM_OP_LE}:
+            _decode_register_binary_payload(self.payload)
 
 
 @dataclass(frozen=True, slots=True)
@@ -543,10 +699,22 @@ def _instruction_register_access(item: VMInstruction) -> tuple[set[int], set[int
     elif item.opcode == VM_OP_STORE_AXIS:
         _, _, register_ref, _, _ = _decode_store_axis_payload(item.payload)
         reads.add(register_ref)
+    elif item.opcode == VM_OP_CONST:
+        register_ref, _ = _decode_register_const_payload(item.payload)
+        writes.add(register_ref)
+    elif item.opcode == VM_OP_MOVE:
+        source, destination = _decode_register_move_payload(item.payload)
+        reads.add(source); writes.add(destination)
+    elif item.opcode in {VM_OP_ADD, VM_OP_SUB, VM_OP_MUL, VM_OP_DIV, VM_OP_EQ, VM_OP_LT, VM_OP_LE}:
+        left, right, destination = _decode_register_binary_payload(item.payload)
+        reads.update((left, right)); writes.add(destination)
     elif item.opcode == VM_OP_CALL:
         _, _, args, returns = decode_vm_call_payload(item.payload)
         reads.update(args)
         writes.update(returns)
+    reads.update(guard.register_ref for guard in item.register_guards)
+    if item.predicate_register_ref:
+        reads.add(item.predicate_register_ref)
     return reads, writes
 
 
@@ -632,7 +800,22 @@ def _decode_binding(data: bytes, offset: int) -> tuple[VMStateBinding, int]:
     return VMStateBinding(slot_ref, mode, revision, base_hash), offset
 
 
-def _encode_instruction(item: VMInstruction) -> bytes:
+def _encode_register_guard(guard: NativeRegisterGuard) -> bytes:
+    out = bytearray()
+    out += encode_uvarint(guard.guard_type)
+    out += encode_uvarint(guard.register_ref)
+    _write_blob(out, guard.payload)
+    return bytes(out)
+
+
+def _decode_register_guard(data: bytes, offset: int) -> tuple[NativeRegisterGuard, int]:
+    kind, offset = decode_uvarint(data, offset)
+    register_ref, offset = decode_uvarint(data, offset)
+    payload, offset = _read_blob(data, offset)
+    return NativeRegisterGuard(kind, register_ref, payload), offset
+
+
+def _encode_instruction_v8(item: VMInstruction) -> bytes:
     out = bytearray()
     out += encode_uvarint(item.instruction_ref)
     out += encode_uvarint(item.opcode)
@@ -649,7 +832,7 @@ def _encode_instruction(item: VMInstruction) -> bytes:
     return bytes(out)
 
 
-def _decode_instruction(data: bytes, offset: int) -> tuple[VMInstruction, int]:
+def _decode_instruction_v8(data: bytes, offset: int) -> tuple[VMInstruction, int]:
     instruction_ref, offset = decode_uvarint(data, offset)
     opcode, offset = decode_uvarint(data, offset)
     effect_mask, offset = decode_uvarint(data, offset)
@@ -669,10 +852,34 @@ def _decode_instruction(data: bytes, offset: int) -> tuple[VMInstruction, int]:
             raise DSRValidationError("VM_GUARD_TRAILING_DATA")
         guards.append(guard)
     payload, offset = _read_blob(data, offset)
-    return VMInstruction(
-        instruction_ref, opcode, effect_mask, required_capabilities, target_ref,
-        tuple(deps), tuple(guards), payload,
-    ), offset
+    return VMInstruction(instruction_ref, opcode, effect_mask, required_capabilities, target_ref, tuple(deps), tuple(guards), payload), offset
+
+
+def _encode_instruction(item: VMInstruction) -> bytes:
+    out = bytearray(_encode_instruction_v8(item))
+    out += encode_uvarint(len(item.register_guards))
+    for guard in item.register_guards:
+        _write_blob(out, _encode_register_guard(guard))
+    out += encode_uvarint(item.predicate_register_ref)
+    out += encode_uvarint(1 if item.predicate_expected else 0)
+    return bytes(out)
+
+
+def _decode_instruction(data: bytes, offset: int) -> tuple[VMInstruction, int]:
+    base, offset = _decode_instruction_v8(data, offset)
+    count, offset = decode_uvarint(data, offset)
+    register_guards: list[NativeRegisterGuard] = []
+    for _ in range(count):
+        blob, offset = _read_blob(data, offset)
+        guard, used = _decode_register_guard(blob, 0)
+        if used != len(blob):
+            raise DSRValidationError("VM_REGISTER_GUARD_TRAILING_DATA")
+        register_guards.append(guard)
+    predicate_ref, offset = decode_uvarint(data, offset)
+    encoded_expected, offset = decode_uvarint(data, offset)
+    if encoded_expected not in {0, 1}:
+        raise DSRValidationError("VM_PREDICATE_EXPECTED_INVALID")
+    return replace(base, register_guards=tuple(register_guards), predicate_register_ref=predicate_ref, predicate_expected=bool(encoded_expected)), offset
 
 
 def _encode_vm_program_v7(program: NativeVMProgram) -> bytes:
@@ -687,7 +894,33 @@ def _encode_vm_program_v7(program: NativeVMProgram) -> bytes:
         _write_blob(out, _encode_binding(binding))
     out += encode_uvarint(len(program.instructions))
     for item in program.instructions:
-        _write_blob(out, _encode_instruction(item))
+        _write_blob(out, _encode_instruction_v8(item))
+    return bytes(out)
+
+
+def _encode_vm_program_v8(program: NativeVMProgram) -> bytes:
+    out = bytearray(VM_PROGRAM_MAGIC)
+    out += encode_uvarint(VM_PROGRAM_V8_VERSION)
+    out += encode_uvarint(program.registry_revision)
+    out += bytes.fromhex(program.registry_hash)
+    out += encode_uvarint(program.program_ref)
+    out += encode_uvarint(program.capability_mask)
+    out += encode_uvarint(len(program.bindings))
+    for binding in program.bindings:
+        _write_blob(out, _encode_binding(binding))
+    out += encode_uvarint(len(program.instructions))
+    for item in program.instructions:
+        _write_blob(out, _encode_instruction_v8(item))
+    out += encode_uvarint(len(program.argument_registers))
+    for ref in program.argument_registers:
+        out += encode_uvarint(ref)
+    out += encode_uvarint(len(program.return_registers))
+    for ref in program.return_registers:
+        out += encode_uvarint(ref)
+    out += encode_uvarint(len(program.scoped_capabilities))
+    for item in program.scoped_capabilities:
+        out += encode_uvarint(item.slot_ref)
+        out += encode_uvarint(item.capability_mask)
     return bytes(out)
 
 
@@ -729,7 +962,7 @@ def decode_vm_program(data: bytes, registry: NativeSymbolRegistry) -> NativeVMPr
         raise DSRValidationError("VM_PROGRAM_MAGIC_INVALID")
     offset = len(VM_PROGRAM_MAGIC)
     version, offset = decode_uvarint(raw, offset)
-    if version not in {VM_PROGRAM_LEGACY_VERSION, VM_PROGRAM_FORMAT_VERSION}:
+    if version not in {VM_PROGRAM_LEGACY_VERSION, VM_PROGRAM_V8_VERSION, VM_PROGRAM_FORMAT_VERSION}:
         raise DSRValidationError("VM_PROGRAM_VERSION_UNSUPPORTED")
     registry_revision, offset = decode_uvarint(raw, offset)
     end = offset + 32
@@ -754,10 +987,18 @@ def decode_vm_program(data: bytes, registry: NativeSymbolRegistry) -> NativeVMPr
     instructions: list[VMInstruction] = []
     for _ in range(instruction_count):
         blob, offset = _read_blob(raw, offset)
-        item, used = _decode_instruction(blob, 0)
+        item, used = (_decode_instruction(blob, 0) if version == VM_PROGRAM_FORMAT_VERSION else _decode_instruction_v8(blob, 0))
         if used != len(blob):
             raise DSRValidationError("VM_INSTRUCTION_TRAILING_DATA")
         registry.resolve(item.instruction_ref, SymbolNamespace.INSTRUCTION_ID)
+        if version == VM_PROGRAM_FORMAT_VERSION:
+            for guard in item.register_guards:
+                registry.resolve(guard.register_ref, SymbolNamespace.REGISTER_ID)
+            if item.predicate_register_ref:
+                registry.resolve(item.predicate_register_ref, SymbolNamespace.REGISTER_ID)
+            reads, writes = _instruction_register_access(item)
+            for ref in reads | writes:
+                registry.resolve(ref, SymbolNamespace.REGISTER_ID)
         if item.opcode == VM_OP_CALL:
             callee_ref, aliases, args, returns = decode_vm_call_payload(item.payload)
             if version == VM_PROGRAM_LEGACY_VERSION and (aliases or args or returns):
@@ -772,7 +1013,7 @@ def decode_vm_program(data: bytes, registry: NativeSymbolRegistry) -> NativeVMPr
     argument_registers: list[int] = []
     return_registers: list[int] = []
     scoped_capabilities: list[VMScopedCapability] = []
-    if version == VM_PROGRAM_FORMAT_VERSION:
+    if version in {VM_PROGRAM_V8_VERSION, VM_PROGRAM_FORMAT_VERSION}:
         count, offset = decode_uvarint(raw, offset)
         for _ in range(count):
             ref, offset = decode_uvarint(raw, offset)
@@ -796,7 +1037,7 @@ def decode_vm_program(data: bytes, registry: NativeSymbolRegistry) -> NativeVMPr
         tuple(bindings), tuple(instructions), tuple(argument_registers), tuple(return_registers),
         tuple(scoped_capabilities),
     )
-    expected = _encode_vm_program_v7(program) if version == VM_PROGRAM_LEGACY_VERSION else encode_vm_program(program)
+    expected = (_encode_vm_program_v7(program) if version == VM_PROGRAM_LEGACY_VERSION else (_encode_vm_program_v8(program) if version == VM_PROGRAM_V8_VERSION else encode_vm_program(program)))
     if expected != raw:
         raise DSRValidationError("VM_PROGRAM_NONCANONICAL")
     return program
@@ -922,6 +1163,37 @@ def _decode_call_ref(payload: bytes) -> int:
     return ref
 
 
+def evaluate_register_guard(guard: NativeRegisterGuard, registers: Mapping[int, object]) -> bool:
+    if not isinstance(guard, NativeRegisterGuard):
+        raise TypeError("guard must be NativeRegisterGuard")
+    if guard.guard_type == REG_GUARD_INITIALIZED:
+        return guard.register_ref in registers
+    if guard.guard_type == REG_GUARD_VALUE_EQ:
+        if guard.register_ref not in registers:
+            return False
+        expected, used = _decode_semantic_value(guard.payload, 0)
+        if used != len(guard.payload):
+            raise DSRExecutionError("VM_REGISTER_GUARD_VALUE_INVALID")
+        return registers[guard.register_ref] == expected
+    raise DSRExecutionError("VM_REGISTER_GUARD_TYPE_INVALID")
+
+
+def _instruction_control_allows(item: VMInstruction, registers: Mapping[int, object]) -> bool:
+    from .model import PointValue
+    if item.predicate_register_ref:
+        if item.predicate_register_ref not in registers:
+            raise DSRExecutionError("VM_PREDICATE_REGISTER_UNINITIALIZED")
+        value = registers[item.predicate_register_ref]
+        if not isinstance(value, PointValue) or not isinstance(value.value, bool):
+            raise DSRExecutionError("VM_PREDICATE_BOOL_REQUIRED")
+        if value.value is not item.predicate_expected:
+            return False
+    for guard in item.register_guards:
+        if not evaluate_register_guard(guard, registers):
+            raise DSRExecutionError("VM_REGISTER_GUARD_FAILED")
+    return True
+
+
 def _validate_instruction_access(
     program: NativeVMProgram,
     item: VMInstruction,
@@ -974,6 +1246,24 @@ def _execute_primitive_item(
         axis = NativeAxis(key_ref, domain_ref, value, uncertainty, resolution)
         axes = tuple(x for x in state.axes if x.key_ref != key_ref) + (axis,)
         return replace(state, revision=state.revision + 1, axes=axes), {}
+    if item.opcode == VM_OP_CONST:
+        destination, value = _decode_register_const_payload(item.payload)
+        registry.resolve(destination, SymbolNamespace.REGISTER_ID)
+        return None, {destination: value}
+    if item.opcode == VM_OP_MOVE:
+        source, destination = _decode_register_move_payload(item.payload)
+        registry.resolve(source, SymbolNamespace.REGISTER_ID); registry.resolve(destination, SymbolNamespace.REGISTER_ID)
+        if source not in register_snapshot:
+            raise DSRExecutionError("VM_REGISTER_UNINITIALIZED")
+        return None, {destination: register_snapshot[source]}
+    if item.opcode in {VM_OP_ADD, VM_OP_SUB, VM_OP_MUL, VM_OP_DIV, VM_OP_EQ, VM_OP_LT, VM_OP_LE}:
+        left_ref, right_ref, destination = _decode_register_binary_payload(item.payload)
+        for ref in (left_ref, right_ref, destination):
+            registry.resolve(ref, SymbolNamespace.REGISTER_ID)
+        if left_ref not in register_snapshot or right_ref not in register_snapshot:
+            raise DSRExecutionError("VM_REGISTER_UNINITIALIZED")
+        value = _execute_register_binary(item.opcode, register_snapshot[left_ref], register_snapshot[right_ref])
+        return None, {destination: value}
     return apply_native_operation(state, item.opcode, item.payload, registry), {}
 
 
@@ -1007,6 +1297,8 @@ def _execute_program_frame(
                 raise _VMAbort("VM_STATE_SLOT_MISSING", program.program_ref, instruction_ref, trace)
             state = working[actual_slot]
             try:
+                if not _instruction_control_allows(item, registers):
+                    continue
                 _validate_instruction_access(program, item, actual_slot, state, registry, granted_scoped_capabilities)
                 if item.opcode == VM_OP_RETURN:
                     trace.append((program.program_ref, instruction_ref))
@@ -1073,23 +1365,26 @@ def _execute_program_frame(
 
         def run_one(row: tuple[VMInstruction, int, object]):
             item, actual_slot, state = row
-            return _execute_primitive_item(
+            if not _instruction_control_allows(item, register_snapshot):
+                return None, {}, False
+            state_update, register_updates = _execute_primitive_item(
                 program, item, actual_slot, state, registry,
                 granted_scoped_capabilities, register_snapshot,
             )
+            return state_update, register_updates, True
 
-        results: list[tuple[VMInstruction, int, object | None, dict[int, object]]] = []
+        results: list[tuple[VMInstruction, int, object | None, dict[int, object], bool]] = []
         try:
             if parallel and len(work_items) > 1:
                 with ThreadPoolExecutor(max_workers=len(work_items)) as pool:
                     futures = [pool.submit(run_one, row) for row in work_items]
                     for row, future in zip(work_items, futures):
-                        state_update, register_updates = future.result()
-                        results.append((row[0], row[1], state_update, register_updates))
+                        state_update, register_updates, executed = future.result()
+                        results.append((row[0], row[1], state_update, register_updates, executed))
             else:
                 for row in work_items:
-                    state_update, register_updates = run_one(row)
-                    results.append((row[0], row[1], state_update, register_updates))
+                    state_update, register_updates, executed = run_one(row)
+                    results.append((row[0], row[1], state_update, register_updates, executed))
         except (DSRExecutionError, DSRValidationError) as exc:
             failed_ref = 0
             if parallel and len(work_items) > 1:
@@ -1112,7 +1407,9 @@ def _execute_program_frame(
                         break
             raise _VMAbort(str(exc), program.program_ref, failed_ref, trace) from exc
 
-        for item, actual_slot, state_update, register_updates in sorted(results, key=lambda row: row[0].instruction_ref):
+        for item, actual_slot, state_update, register_updates, executed in sorted(results, key=lambda row: row[0].instruction_ref):
+            if not executed:
+                continue
             if state_update is not None:
                 working[actual_slot] = state_update
             registers.update(register_updates)

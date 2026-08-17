@@ -1,0 +1,12 @@
+{
+  "files_checked": [
+    "README.md",
+    "RELEASE_NOTES.md",
+    "AI_HANDOFF.md",
+    "docs/NATIVE_VM_v0.9.md",
+    "docs/superpowers/specs/2026-08-18-v09-native-compute-design.md",
+    "docs/superpowers/plans/2026-08-18-v09-native-compute-plan.md"
+  ],
+  "forbidden_hits": [],
+  "status": "PASS"
+}

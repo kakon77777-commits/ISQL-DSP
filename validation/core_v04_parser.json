@@ -1,8 +1,9 @@
 {
-  "accepted": true,
   "domain": "EXEC",
   "resolution": "R4",
   "control": "DSRV",
   "payload_digits_only": true,
-  "exact_roundtrip": true
+  "roundtrip_equal": true,
+  "wire_length": 495,
+  "status": "PASS"
 }

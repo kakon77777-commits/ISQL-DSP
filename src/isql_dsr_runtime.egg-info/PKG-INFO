@@ -1,6 +1,0 @@
-Metadata-Version: 2.4
-Name: isql-dsr-runtime
-Version: 0.8.0
-Summary: ISQL Dynamic Spectrum Runtime v0.8: register dataflow, scoped capabilities, multi-slot calls, and deterministic parallel native VM execution.
-Author: Neo.K / EVEMISSLAB
-Requires-Python: >=3.11

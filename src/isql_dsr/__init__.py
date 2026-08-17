@@ -1,4 +1,4 @@
-"""ISQL Dynamic Spectrum Runtime v0.7 — guarded capability-aware multi-state native VM."""
+"""ISQL Dynamic Spectrum Runtime v0.9 — typed register compute and predicated DAG native VM."""
 
 from .branch import (
     NativeBranch, NativeMergeConflict, NativeMergeResult, decode_branch, encode_branch, merge_native_branches,
@@ -17,6 +17,7 @@ from .canonical import canonical_bytes, canonical_json, inspection_json, state_h
 from .diff import StateDiff, diff_states
 from .events import TransitionEvent
 from .fusion import FusionConflict, FusionDecision, SemanticProposal, fuse_proposals
+from .linker import link_vm_programs
 from .model import (
     CandidateSetValue, IntervalValue, PointValue, SemanticProjection, SemanticState,
     SpectrumAxis, TopologyDescriptor, TypedRelation,
@@ -38,10 +39,15 @@ from .vm import (
     ALL_CAPABILITIES, BIND_DYNAMIC, BIND_EXACT, CAP_AXIS, CAP_AXIS_READ, CAP_CALL, CAP_CONTEXT, CAP_PROJECTION, CAP_RELATION, CAP_TOPOLOGY,
     EXECUTION_FAILED as VM_EXECUTION_FAILED, EXECUTION_SUCCESS as VM_EXECUTION_SUCCESS,
     GUARD_AXIS_ABSENT, GUARD_AXIS_PRESENT, GUARD_AXIS_VALUE_EQ, GUARD_RELATION_STATUS, GUARD_STATE_HASH_EQ,
-    NativeGuard, NativeVMProgram, VMInstruction, VMScopedCapability, VMStateBinding, VMTransactionReceipt, VMTransactionResult,
-    VM_OP_CALL, VM_OP_LOAD_AXIS, VM_OP_RETURN, VM_OP_STORE_AXIS, decode_vm_call_payload, decode_vm_program,
-    encode_load_axis_payload, encode_store_axis_payload, encode_vm_call_payload, encode_vm_program, evaluate_guard, execute_vm_transaction,
-    guard_axis_value_eq, guard_relation_status, guard_state_hash_eq, vm_execution_batches, vm_execution_order, vm_program_hash,
+    NativeGuard, NativeRegisterGuard, NativeVMProgram, VMInstruction, VMScopedCapability, VMStateBinding, VMTransactionReceipt, VMTransactionResult,
+    REG_GUARD_INITIALIZED, REG_GUARD_VALUE_EQ,
+    VM_OP_CALL, VM_OP_LOAD_AXIS, VM_OP_RETURN, VM_OP_STORE_AXIS,
+    VM_OP_CONST, VM_OP_MOVE, VM_OP_ADD, VM_OP_SUB, VM_OP_MUL, VM_OP_DIV, VM_OP_EQ, VM_OP_LT, VM_OP_LE,
+    decode_vm_call_payload, decode_vm_program, encode_load_axis_payload, encode_store_axis_payload,
+    encode_register_const_payload, encode_register_move_payload, encode_register_binary_payload,
+    encode_vm_call_payload, encode_vm_program, evaluate_guard, evaluate_register_guard, execute_vm_transaction,
+    guard_axis_value_eq, guard_relation_status, guard_state_hash_eq, register_guard_initialized, register_guard_value_eq,
+    vm_execution_batches, vm_execution_order, vm_program_hash,
 )
 
 from .machine import (
@@ -61,7 +67,7 @@ from .stream import (
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import ValidationReport, validate_state
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 __all__ = [
     "AppliedTransition", "CandidateSetValue", "CoreDomainEnvelope", "CoreEnvelopeBundle",
@@ -103,5 +109,10 @@ __all__ = [
     "encode_load_axis_payload", "encode_store_axis_payload", "decode_vm_program", "encode_vm_program",
     "evaluate_guard", "execute_vm_transaction", "guard_axis_value_eq", "guard_relation_status", "guard_state_hash_eq",
     "vm_execution_batches", "vm_execution_order", "vm_program_hash",
+    "NativeRegisterGuard", "REG_GUARD_INITIALIZED", "REG_GUARD_VALUE_EQ",
+    "register_guard_initialized", "register_guard_value_eq", "evaluate_register_guard",
+    "VM_OP_CONST", "VM_OP_MOVE", "VM_OP_ADD", "VM_OP_SUB", "VM_OP_MUL", "VM_OP_DIV",
+    "VM_OP_EQ", "VM_OP_LT", "VM_OP_LE", "encode_register_const_payload",
+    "encode_register_move_payload", "encode_register_binary_payload", "link_vm_programs",
     "topology_basis_hash", "validate_state", "__version__",
 ]

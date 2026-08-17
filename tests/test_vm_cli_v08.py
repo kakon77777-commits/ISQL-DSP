@@ -59,7 +59,7 @@ class VMCLIV08Tests(unittest.TestCase):
                 ])
             self.assertEqual(rc, 0)
             payload = json.loads(buf.getvalue())
-            self.assertEqual(payload['schema'], 'isql.dsr-vm-transaction-result/v0.8')
+            self.assertEqual(payload['schema'], 'isql.dsr-vm-transaction-result/v0.9')
             self.assertTrue(payload['parallel'])
             self.assertEqual(payload['returns'], [[x['arg'], {'kind': 'point', 'value': 42}]])
 

@@ -1,2 +1,0 @@
-[console_scripts]
-isql-dsr = isql_dsr.cli:main

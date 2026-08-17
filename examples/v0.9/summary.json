@@ -1,0 +1,74 @@
+{
+  "branch_module_bytes": 140,
+  "core_wire": {
+    "control": "DSRV",
+    "digits_only": true,
+    "domain": "EXEC",
+    "resolution": "R4"
+  },
+  "false_branch_return": {
+    "kind": "point",
+    "value": 60
+  },
+  "false_trace": [
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      3,
+      7
+    ]
+  ],
+  "genesis_bytes": 46,
+  "identifier_leaks": {
+    "branch-module": [],
+    "depends_on": [],
+    "instruction_ref": [],
+    "predicate_register_ref": [],
+    "program_ref": [],
+    "r:left": [],
+    "r:result": [],
+    "register_guards": []
+  },
+  "linked_batches": [
+    [
+      4
+    ],
+    [
+      5
+    ],
+    [
+      6
+    ],
+    [
+      7
+    ]
+  ],
+  "linked_bytes": 159,
+  "registry_bytes": 189,
+  "registry_symbols": 15,
+  "scale_module_bytes": 102,
+  "true_branch_return": {
+    "kind": "point",
+    "value": 30
+  },
+  "true_trace": [
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      7
+    ]
+  ]
+}
