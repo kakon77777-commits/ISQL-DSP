@@ -1,0 +1,28 @@
+{
+  "conflicts": [],
+  "state": {
+    "axes": [
+      {
+        "domain": "ordinal",
+        "key": "risk",
+        "resolution": 3,
+        "uncertainty": 0.05,
+        "value": {
+          "kind": "point",
+          "value": 5
+        }
+      }
+    ],
+    "context": {
+      "mode": "native"
+    },
+    "history": [],
+    "identity": "agent:deploy-runtime",
+    "negative_relations": [],
+    "projections": [],
+    "relations": [],
+    "revision": 2,
+    "schema": "isql.dsr-state/v0.3",
+    "topology": []
+  }
+}

@@ -54,14 +54,14 @@ class CLIV05Tests(unittest.TestCase):
             self.run_cli(["registered-pack", "--state", str(base_json), "--registry", str(registry), "--out", str(base_native)])
             left = self.run_cli(["branch-pack", "--branch-id", "left", "--genesis", str(base_json), "--events", str(left_json), "--registry", str(registry), "--out", str(left_branch)])
             right = self.run_cli(["branch-pack", "--branch-id", "right", "--genesis", str(base_json), "--events", str(right_json), "--registry", str(registry), "--out", str(right_branch)])
-            self.assertEqual(left["schema"], "isql.dsr-branch-artifact/v0.5")
+            self.assertEqual(left["schema"], "isql.dsr-branch-artifact/v0.6")
             self.assertEqual(right["records"], 1)
 
             result = self.run_cli([
                 "branch-merge", "--base-native", str(base_native), "--branch", str(left_branch), "--branch", str(right_branch),
                 "--registry", str(registry), "--out", str(merged)
             ])
-            self.assertEqual(result["schema"], "isql.dsr-branch-merge-result/v0.5")
+            self.assertEqual(result["schema"], "isql.dsr-branch-merge-result/v0.6")
             self.assertEqual(result["conflicts"], [])
             inspected = self.run_cli(["registered-inspect", "--native", str(merged), "--registry", str(registry)])
             state = SemanticState.from_dict(inspected)

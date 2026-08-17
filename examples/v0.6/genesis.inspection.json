@@ -1,0 +1,14 @@
+{
+  "axes": [],
+  "context": {
+    "mode": "native"
+  },
+  "history": [],
+  "identity": "agent:deploy-runtime",
+  "negative_relations": [],
+  "projections": [],
+  "relations": [],
+  "revision": 0,
+  "schema": "isql.dsr-state/v0.3",
+  "topology": []
+}

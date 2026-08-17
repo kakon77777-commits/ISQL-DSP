@@ -1,0 +1,40 @@
+{
+  "axes": [
+    {
+      "domain": "ordinal",
+      "key": "risk",
+      "resolution": 1,
+      "uncertainty": 0.1,
+      "value": {
+        "kind": "point",
+        "value": 2
+      }
+    }
+  ],
+  "context": {
+    "mode": "native"
+  },
+  "history": [],
+  "identity": "agent:deploy-runtime",
+  "negative_relations": [],
+  "projections": [],
+  "relations": [
+    {
+      "object": "deploy",
+      "predicate": "supports",
+      "subject": "plan"
+    }
+  ],
+  "revision": 3,
+  "schema": "isql.dsr-state/v0.3",
+  "topology": [
+    {
+      "basis_hash": "9d52ca92eb5dcd59f0150882fbfabd9b7441d80f7e5a3f94487845299cf4d642",
+      "confidence": 1.0,
+      "descriptor_id": "graph.components",
+      "method": "graph.components",
+      "parameters": {},
+      "value": 1
+    }
+  ]
+}

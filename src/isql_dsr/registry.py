@@ -27,6 +27,8 @@ class SymbolNamespace(IntEnum):
     PROPOSAL_ID = 12
     CONTEXT_KEY = 13
     BRANCH_ID = 14
+    PROGRAM_ID = 15
+    INSTRUCTION_ID = 16
 
 
 def _uvarint(value: int) -> bytes:

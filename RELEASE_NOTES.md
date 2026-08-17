@@ -1,36 +1,39 @@
-# ISQL-DSR Runtime v0.5.0 Release Notes
+# ISQL-DSR Runtime v0.6.0 Release Notes
 
-## Theme: Native Execution Semantics
+## Theme: Causal Native Programs and Atomic Transactions
 
-v0.5 moves execution below the inspection layer. Canonical stream replay now mutates registered numeric state directly.
+v0.6 upgrades EXEC from replayable native events to composable machine programs.
 
 ### Added
 
-- `NativeSemanticState.negative_relations`.
-- `deny_relation` opcode 12.
-- `retract_relation` opcode 13.
-- Direct `apply_native_event()` executor.
-- Native topology basis and graph operators.
-- Native weighted fusion without `SemanticState` materialization.
-- Positive/negative relation voting in fusion.
-- `.isqlb` branch artifact.
-- Deterministic numeric three-way branch merge.
-- Machine conflict codes.
-- `BRANCH_ID` registry namespace.
-- CLI `branch-pack` and `branch-merge`.
+- `PROGRAM_ID` registry namespace.
+- `INSTRUCTION_ID` registry namespace.
+- `.isqlp` canonical program artifact.
+- `NativeInstruction` and `NativeProgram`.
+- Numeric operator effect masks.
+- Causal instruction dependency DAG validation.
+- Deterministic topological program execution.
+- Atomic rollback semantics.
+- `ProgramExecutionReceipt` inspection result.
+- `NativeBranch.depends_on` causal metadata.
+- Causal branch precedence in native merge.
+- `EXEC/R4/DSRP` Core program envelope.
+- CLI program pack/run/bridge commands.
 
 ### Changed
 
-- Registered state format is v5.
-- Event stream format is v5.
-- Topology basis hash is length-framed symbol-byte based rather than JSON based.
-- Built-in topology descriptors no longer carry human-readable `graph_mode` parameters in canonical state.
-- Inspection event schema advances to v0.5.
+- Branch artifact format advances to v6.
+- Branch CLI inspection schema advances to v0.6.
+- Branch merge inspection schema advances to v0.6.
+- Native event operator implementation is factored into `apply_native_operation()` so event replay and program execution share one numeric execution core.
 
-### Invariant
+### Preserved
 
-Canonical replay does not require a human-readable intermediate representation.
+- `.isqle` remains the canonical low-level event stream.
+- `EXEC/R4/DSRE` remains available for event-stream transport.
+- Registry prefix hashes remain append-only compatible.
+- Human-readable JSON remains non-canonical.
 
-### Compatibility
+### Compatibility note
 
-The existing Core R4 transport envelope is retained for interoperability with the supplied ISQL Core v0.4 parser. R4 is the Core transport resolution and is not the DSR release number.
+The supplied ISQL Core v0.4 parser only accepts `R0-R4`; therefore `.isqlp` uses `EXEC/R4/DSRP`, not a fictitious `R5` transport resolution.

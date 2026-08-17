@@ -519,8 +519,10 @@ class RegisteredCoreEnvelope:
             raise DSRValidationError("REGISTERED_CORE_DOMAIN_INVALID")
         if self.resolution != "R4":
             raise DSRValidationError("REGISTERED_CORE_RESOLUTION_INVALID")
-        expected_control = "DSRE" if self.domain == "EXEC" else "DSRR"
-        if self.control != expected_control:
+        if self.domain == "EXEC":
+            if self.control not in {"DSRE", "DSRP"}:
+                raise DSRValidationError("REGISTERED_CORE_CONTROL_INVALID")
+        elif self.control != "DSRR":
             raise DSRValidationError("REGISTERED_CORE_CONTROL_INVALID")
         if self.protocol_version != 1:
             raise DSRValidationError("REGISTERED_CORE_PROTOCOL_VERSION_INVALID")
@@ -641,6 +643,32 @@ def to_registered_core_sem_envelope(state: Any) -> RegisteredCoreEnvelope:
         control="DSRR",
     )
 
+
+
+
+def to_registered_core_program_envelope(program: Any, genesis: Any) -> RegisteredCoreEnvelope:
+    from .machine import NativeSemanticState, registered_state_hash
+    from .program import NativeProgram, encode_program
+    if not isinstance(program, NativeProgram):
+        raise TypeError("program must be NativeProgram")
+    if not isinstance(genesis, NativeSemanticState):
+        raise TypeError("genesis must be NativeSemanticState")
+    if program.base_revision != genesis.revision:
+        raise DSRValidationError("REGISTERED_CORE_PROGRAM_BASE_REVISION_MISMATCH")
+    if program.base_hash != registered_state_hash(genesis):
+        raise DSRValidationError("REGISTERED_CORE_PROGRAM_BASE_HASH_MISMATCH")
+    payload = encode_program(program)
+    return RegisteredCoreEnvelope(
+        domain="EXEC",
+        identity_ref=genesis.identity_ref,
+        revision=program.base_revision,
+        registry_revision=program.registry_revision,
+        registry_hash=program.registry_hash,
+        state_hash=program.base_hash,
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+        control="DSRP",
+    )
 
 def to_registered_core_exec_envelope(stream: Any, genesis: Any) -> RegisteredCoreEnvelope:
     from .machine import NativeSemanticState, registered_state_hash

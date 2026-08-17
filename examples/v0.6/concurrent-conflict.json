@@ -1,0 +1,15 @@
+{
+  "conflicts": [
+    {
+      "branch_refs": [
+        16,
+        18
+      ],
+      "key": [
+        3
+      ],
+      "kind": 1
+    }
+  ],
+  "state_hash": "f7afcf524b74aed4ff715edd083164bfb1b49b49b8e6878ba271a72a1dfc5d7b"
+}

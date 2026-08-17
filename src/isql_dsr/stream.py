@@ -728,17 +728,15 @@ def _decode_relation_payload(payload: bytes) -> NativeRelation:
     return rel
 
 
-def apply_native_event(state: NativeSemanticState, event: NativeTransitionEvent, registry: NativeSymbolRegistry) -> NativeSemanticState:
-    """Execute a transition directly on registered numeric state.
+def apply_native_operation(state: NativeSemanticState, opcode: int, payload: bytes, registry: NativeSymbolRegistry) -> NativeSemanticState:
+    """Apply one numeric operator directly to machine state.
 
-    This is the v0.5 canonical executor. It never materializes SemanticState.
+    This primitive intentionally performs no event hash-chain validation; callers
+    such as event replay and atomic program execution provide their own causal
+    envelope validation.
     """
-    if event.base_revision != state.revision:
-        raise DSRExecutionError("STREAM_EVENT_BASE_REVISION_MISMATCH")
-    if event.previous_hash != registered_state_hash(state):
-        raise DSRExecutionError("STREAM_EVENT_PREVIOUS_HASH_MISMATCH")
-    op = operation_name(event.opcode)
-    payload = event.payload
+    op = operation_name(opcode)
+    payload = bytes(payload)
     changes: dict[str, Any] = {}
 
     if op == "set_context":
@@ -856,6 +854,15 @@ def apply_native_event(state: NativeSemanticState, event: NativeTransitionEvent,
         raise DSRExecutionError("STREAM_OPERATION_UNSUPPORTED")
 
     return replace(state, revision=state.revision + 1, **changes)
+
+
+def apply_native_event(state: NativeSemanticState, event: NativeTransitionEvent, registry: NativeSymbolRegistry) -> NativeSemanticState:
+    """Execute a hash-chained transition directly on registered numeric state."""
+    if event.base_revision != state.revision:
+        raise DSRExecutionError("STREAM_EVENT_BASE_REVISION_MISMATCH")
+    if event.previous_hash != registered_state_hash(state):
+        raise DSRExecutionError("STREAM_EVENT_PREVIOUS_HASH_MISMATCH")
+    return apply_native_operation(state, event.opcode, event.payload, registry)
 
 def build_event_stream(genesis: SemanticState, events: Iterable[TransitionEvent], registry: NativeSymbolRegistry) -> NativeEventStream:
     current_semantic=genesis

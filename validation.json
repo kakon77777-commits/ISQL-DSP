@@ -1,180 +1,97 @@
 {
-  "schema": "isql.dsr-release-validation/v0.5",
-  "release": "0.5.0",
-  "python": "3.13.5",
+  "atomic_rollback_verified": true,
   "canonical_artifacts": [
     ".isqlr",
     ".isqln",
     ".isqle",
-    ".isqlb"
+    ".isqlb",
+    ".isqlp"
   ],
-  "source_tests": {
-    "count": 82,
-    "failures": 0,
-    "status": "PASS",
-    "log": "validation/source_tests.txt"
-  },
-  "wheel_build": {
-    "status": "PASS",
-    "offline_no_build_isolation": true,
-    "log": "validation/wheel_build.txt",
-    "wheel": "dist/isql_dsr_runtime-0.5.0-py3-none-any.whl",
-    "sha256": "8c3b870d777c59bd15b785ab99ed63ceed4a20e9f3c0ed563f59a4048c4daedd",
-    "bytes": 51666
-  },
-  "fresh_install": {
-    "status": "PASS",
-    "version": "0.5.0",
-    "tests": 82,
-    "failures": 0,
-    "module_path": "/tmp/isql_dsr_v05_venv/lib/python3.13/site-packages/isql_dsr/__init__.py",
-    "pythonpath_unset": true,
-    "logs": [
-      "validation/wheel_install.txt",
-      "validation/installed_import.txt",
-      "validation/installed_tests.txt"
-    ]
-  },
+  "core_transport_resolution": "R4",
   "core_v04_parser": {
-    "sem": {
-      "domain": "SEM",
+    "exec_program": {
+      "control": "DSRP",
+      "domain": "EXEC",
+      "payload_digits_only": true,
       "resolution": "R4",
+      "round_trip_equal": true
+    },
+    "exec_stream": {
+      "control": "DSRE",
+      "domain": "EXEC",
+      "payload_digits_only": true,
+      "resolution": "R4",
+      "round_trip_equal": true
+    },
+    "sem": {
       "control": "DSRR",
-      "digits_only": true,
-      "wire_roundtrip": true,
-      "wire_length": 518
+      "domain": "SEM",
+      "payload_digits_only": true,
+      "resolution": "R4",
+      "round_trip_equal": true
     },
     "state": {
-      "domain": "STATE",
-      "resolution": "R4",
       "control": "DSRR",
-      "digits_only": true,
-      "wire_roundtrip": true,
-      "wire_length": 550
-    },
-    "exec": {
-      "domain": "EXEC",
+      "domain": "STATE",
+      "payload_digits_only": true,
       "resolution": "R4",
-      "control": "DSRE",
-      "digits_only": true,
-      "wire_roundtrip": true,
-      "wire_length": 2052
+      "round_trip_equal": true
     }
   },
-  "examples": {
-    "schema": "isql.dsr-v0.5-example-summary",
-    "registry": {
-      "revision": 35,
-      "bytes": 353,
-      "sha256": "13bcb1ac03cd95072b92ca0b0e00655a5e076f8d2a0c5e155b61178cbbb65fc6",
-      "registry_hash": "13bcb1ac03cd95072b92ca0b0e00655a5e076f8d2a0c5e155b61178cbbb65fc6"
+  "example": {
+    "causal_merge_conflicts": 0,
+    "causal_merge_risk": {
+      "kind": "point",
+      "value": 5
     },
-    "genesis": {
-      "bytes": 56,
-      "state_hash": "84624fcc8e7c0c65dba6e239f9dbede2311ba5af22a2fd671be31b6b5e6e656e"
-    },
-    "main_stream": {
-      "records": 8,
-      "bytes": 678,
-      "sha256": "b7dd3c2d8771fb05c5813662c8b1d6ab77582fae7d17f6d9a991e1e257df9e87"
-    },
-    "final": {
-      "revision": 8,
-      "bytes": 177,
-      "state_hash": "385be6b4c70d254a746b2afed14968996adbe4e2b36d26154b81204869864b82",
-      "positive_relations": 1,
-      "negative_relations": 1,
-      "topology_descriptors": 2
-    },
-    "branches": {
-      "left": {
-        "bytes": 202,
-        "records": 1,
-        "branch_ref": 32
-      },
-      "right": {
-        "bytes": 186,
-        "records": 1,
-        "branch_ref": 33
-      },
-      "conflict-pos": {
-        "bytes": 186,
-        "records": 1,
-        "branch_ref": 34
-      },
-      "conflict-neg": {
-        "bytes": 186,
-        "records": 1,
-        "branch_ref": 35
-      }
-    },
-    "clean_merge": {
-      "bytes": 78,
-      "state_hash": "79a7545cf0ed0040e7f553bf4c48ca7ffa985a5308e7efa4b70cc576917bc514",
-      "conflicts": 0,
-      "revision": 2
-    },
-    "polarity_conflict_merge": {
-      "bytes": 56,
-      "state_hash": "425a75f26a45f76a69b969a60bc77804d788c6dd27bec416e14d09242e2d5572",
-      "conflicts": [
-        {
-          "kind": 2,
-          "key": [
-            11,
-            15,
-            9
-          ],
-          "branch_refs": [
-            34,
-            35
-          ]
-        }
-      ],
-      "contains_relation_polarity_conflict": true
-    },
-    "identifier_leak_checks": {
+    "concurrent_conflicts": 1,
+    "core_program_wire_prefix": "ISQL1:EXEC:R4:DSRP21",
+    "genesis_bytes": 56,
+    "identifier_leaks": {
+      "causal-merged.isqln": [],
+      "deploy-final.isqln": [],
+      "deploy.isqlp": [],
       "genesis.isqln": [],
       "history.isqle": [],
-      "final.isqln": [],
-      "left.isqlb": [],
-      "right.isqlb": [],
-      "merged.isqln": []
+      "parallel.isqlb": [],
+      "research.isqlb": [],
+      "review.isqlb": [],
+      "rollback-result.isqln": [],
+      "rollback.isqlp": []
     },
-    "core_r4_controls": {
-      "sem": [
-        "SEM",
-        "R4",
-        "DSRR"
-      ],
-      "state": [
-        "STATE",
-        "R4",
-        "DSRR"
-      ],
-      "exec": [
-        "EXEC",
-        "R4",
-        "DSRE"
-      ]
-    },
-    "accounting": {
-      "shared_registry_bytes": 353,
-      "main_total_excluding_decoder": 1264
-    }
+    "program_bytes": 115,
+    "program_final_bytes": 122,
+    "registry_bytes": 280,
+    "registry_revision": 26,
+    "rollback_exact_base": true,
+    "rollback_program_bytes": 103,
+    "rollback_result_bytes": 56,
+    "rollback_status": 2,
+    "schema": "isql.dsr-v0.6-example-summary/v0.6",
+    "stream_bytes": 303,
+    "success_status": 1
   },
-  "native_execution": {
-    "signed_relation_status": [
-      -1,
-      0,
-      1
-    ],
-    "replay_without_semantic_adapter": true,
-    "branch_artifact": ".isqlb",
-    "deterministic_three_way_merge": true,
-    "relation_polarity_conflict_code": 2,
-    "negative_fusion_votes": true
+  "installed_import": [
+    "0.6.0",
+    "/mnt/data/isql_dsr_v06_verify_venv/lib/python3.13/site-packages/isql_dsr/__init__.py"
+  ],
+  "installed_tests": {
+    "count": 96,
+    "log": "validation/installed_tests.txt",
+    "status": "PASS"
   },
-  "human_readable_layers_are_noncanonical": true,
-  "status": "PASS"
+  "program_control": "DSRP",
+  "release": "0.6.0",
+  "source_tests": {
+    "count": 96,
+    "log": "validation/source_tests.txt",
+    "status": "PASS"
+  },
+  "status": "PASS",
+  "stream_control": "DSRE",
+  "wheel": {
+    "bytes": 57137,
+    "file": "isql_dsr_runtime-0.6.0-py3-none-any.whl",
+    "sha256": "96bb2dd82fb44b1f4e4a0a3a0d12429ebcb6449c96031976d8800742d6f3f268"
+  }
 }

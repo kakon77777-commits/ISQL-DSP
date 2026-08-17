@@ -1,26 +1,30 @@
 {
-  "sem": {
-    "domain": "SEM",
+  "exec_program": {
+    "control": "DSRP",
+    "domain": "EXEC",
+    "payload_digits_only": true,
     "resolution": "R4",
+    "round_trip_equal": true
+  },
+  "exec_stream": {
+    "control": "DSRE",
+    "domain": "EXEC",
+    "payload_digits_only": true,
+    "resolution": "R4",
+    "round_trip_equal": true
+  },
+  "sem": {
     "control": "DSRR",
-    "digits_only": true,
-    "wire_roundtrip": true,
-    "wire_length": 518
+    "domain": "SEM",
+    "payload_digits_only": true,
+    "resolution": "R4",
+    "round_trip_equal": true
   },
   "state": {
-    "domain": "STATE",
-    "resolution": "R4",
     "control": "DSRR",
-    "digits_only": true,
-    "wire_roundtrip": true,
-    "wire_length": 550
-  },
-  "exec": {
-    "domain": "EXEC",
+    "domain": "STATE",
+    "payload_digits_only": true,
     "resolution": "R4",
-    "control": "DSRE",
-    "digits_only": true,
-    "wire_roundtrip": true,
-    "wire_length": 2052
+    "round_trip_equal": true
   }
 }

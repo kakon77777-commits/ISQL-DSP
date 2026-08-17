@@ -1,4 +1,4 @@
-"""ISQL Dynamic Spectrum Runtime v0.5 — machine-native execution semantics and branch streams."""
+"""ISQL Dynamic Spectrum Runtime v0.6 — causal native programs and atomic transactions."""
 
 from .branch import (
     NativeBranch, NativeMergeConflict, NativeMergeResult, decode_branch, encode_branch, merge_native_branches,
@@ -10,7 +10,7 @@ from .bridge import (
     decode_decimal_bytes, encode_decimal_bytes,
     to_core_bundle, to_core_sem_envelope, to_core_state_envelope,
     to_native_core_bundle, to_native_core_sem_envelope, to_native_core_state_envelope,
-    RegisteredCoreEnvelope, to_registered_core_exec_envelope,
+    RegisteredCoreEnvelope, to_registered_core_exec_envelope, to_registered_core_program_envelope,
     to_registered_core_sem_envelope, to_registered_core_state_envelope,
 )
 from .canonical import canonical_bytes, canonical_json, inspection_json, state_hash
@@ -27,6 +27,12 @@ from .native import (
     decode_value, encode_value,
 )
 from .runtime import AppliedTransition, apply_event, replay
+from .program import (
+    EFFECT_AXIS, EFFECT_CONTEXT, EFFECT_PROJECTION, EFFECT_RELATION, EFFECT_TOPOLOGY,
+    EXECUTION_FAILED, EXECUTION_SUCCESS, NativeInstruction, NativeProgram,
+    ProgramExecutionReceipt, ProgramExecutionResult, decode_program, encode_program,
+    execute_native_program, operator_effect_mask, program_execution_order, program_from_stream, program_hash,
+)
 
 from .machine import (
     NativeAxis, NativeProjection, NativeRelation, NativeSemanticState, NativeTopology,
@@ -38,14 +44,14 @@ from .registry import (
     extend_registry_for_events, extend_registry_for_state, registry_hash,
 )
 from .stream import (
-    NativeEventStream, NativeStreamRecord, NativeTransitionEvent, apply_native_event, build_event_stream,
+    NativeEventStream, NativeStreamRecord, NativeTransitionEvent, apply_native_event, apply_native_operation, build_event_stream,
     compile_native_event, decode_event_stream, encode_event_stream, inspect_native_event,
     replay_native_stream,
 )
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import ValidationReport, validate_state
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "AppliedTransition", "CandidateSetValue", "CoreDomainEnvelope", "CoreEnvelopeBundle",
@@ -73,5 +79,10 @@ __all__ = [
     "to_core_state_envelope", "to_native_core_bundle", "to_native_core_sem_envelope",
     "to_native_core_state_envelope", "to_registered_core_exec_envelope",
     "to_registered_core_sem_envelope", "to_registered_core_state_envelope",
+    "EFFECT_AXIS", "EFFECT_CONTEXT", "EFFECT_PROJECTION", "EFFECT_RELATION", "EFFECT_TOPOLOGY",
+    "EXECUTION_FAILED", "EXECUTION_SUCCESS", "NativeInstruction", "NativeProgram",
+    "ProgramExecutionReceipt", "ProgramExecutionResult", "apply_native_operation",
+    "decode_program", "encode_program", "execute_native_program", "operator_effect_mask",
+    "program_execution_order", "program_from_stream", "program_hash", "to_registered_core_program_envelope",
     "topology_basis_hash", "validate_state", "__version__",
 ]

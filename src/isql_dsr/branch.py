@@ -5,12 +5,12 @@ from typing import Iterable
 
 from .errors import DSRExecutionError, DSRValidationError
 from .machine import NativeAxis, NativeProjection, NativeRelation, NativeSemanticState, registered_state_hash
-from .native import decode_uvarint, encode_uvarint, encode_value
+from .native import decode_uvarint, encode_uvarint, encode_value, _encode_semantic_value
 from .registry import NativeSymbolRegistry, SymbolNamespace
 from .stream import NativeEventStream, decode_event_stream, encode_event_stream, replay_native_stream
 
-BRANCH_MAGIC = bytes((0xD5, 0x51, 0xB7, 0x05))
-BRANCH_FORMAT_VERSION = 5
+BRANCH_MAGIC = bytes((0xD5, 0x51, 0xB7, 0x06))
+BRANCH_FORMAT_VERSION = 6
 
 CONFLICT_AXIS = 1
 CONFLICT_RELATION_POLARITY = 2
@@ -43,6 +43,7 @@ class NativeBranch:
     base_revision: int
     base_hash: str
     stream: NativeEventStream
+    depends_on: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.branch_ref, int) or isinstance(self.branch_ref, bool) or self.branch_ref <= 0:
@@ -54,6 +55,16 @@ class NativeBranch:
             raise DSRValidationError("BRANCH_STREAM_INVALID")
         if self.stream.genesis_hash != self.base_hash:
             raise DSRValidationError("BRANCH_STREAM_BASE_HASH_MISMATCH")
+        if not isinstance(self.depends_on, tuple):
+            raise DSRValidationError("BRANCH_DEPENDENCIES_INVALID")
+        deps = tuple(sorted(self.depends_on))
+        if any(not isinstance(ref, int) or isinstance(ref, bool) or ref <= 0 for ref in deps):
+            raise DSRValidationError("BRANCH_DEPENDENCY_REF_INVALID")
+        if len(set(deps)) != len(deps):
+            raise DSRValidationError("BRANCH_DEPENDENCY_DUPLICATE")
+        if self.branch_ref in deps:
+            raise DSRValidationError("BRANCH_DEPENDENCY_SELF")
+        object.__setattr__(self, "depends_on", deps)
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +96,9 @@ def encode_branch(branch: NativeBranch) -> bytes:
     out = bytearray(BRANCH_MAGIC)
     out += encode_uvarint(BRANCH_FORMAT_VERSION)
     out += encode_uvarint(branch.branch_ref)
+    out += encode_uvarint(len(branch.depends_on))
+    for ref in branch.depends_on:
+        out += encode_uvarint(ref)
     out += encode_uvarint(branch.base_revision)
     out += bytes.fromhex(branch.base_hash)
     _write_blob(out, encode_event_stream(branch.stream))
@@ -103,6 +117,12 @@ def decode_branch(data: bytes, registry: NativeSymbolRegistry) -> NativeBranch:
         raise DSRValidationError("BRANCH_VERSION_UNSUPPORTED")
     branch_ref, offset = decode_uvarint(data, offset)
     registry.resolve(branch_ref, SymbolNamespace.BRANCH_ID)
+    dep_count, offset = decode_uvarint(data, offset)
+    deps = []
+    for _ in range(dep_count):
+        dep, offset = decode_uvarint(data, offset)
+        registry.resolve(dep, SymbolNamespace.BRANCH_ID)
+        deps.append(dep)
     base_revision, offset = decode_uvarint(data, offset)
     end = offset + 32
     if end > len(data):
@@ -112,7 +132,7 @@ def decode_branch(data: bytes, registry: NativeSymbolRegistry) -> NativeBranch:
     stream = decode_event_stream(blob, registry)
     if offset != len(data):
         raise DSRValidationError("BRANCH_TRAILING_DATA")
-    branch = NativeBranch(branch_ref, base_revision, base_hash, stream)
+    branch = NativeBranch(branch_ref, base_revision, base_hash, stream, tuple(deps))
     if encode_branch(branch) != data:
         raise DSRValidationError("BRANCH_NONCANONICAL")
     return branch
@@ -141,9 +161,65 @@ def _projection_map(state: NativeSemanticState) -> dict[int, NativeProjection]:
 
 
 def _fingerprint(value: object) -> bytes:
+    if value is None:
+        return b"\x00"
+    if isinstance(value, NativeAxis):
+        return (
+            b"A" + encode_uvarint(value.key_ref) + encode_uvarint(value.domain_ref)
+            + _encode_semantic_value(value.value) + encode_value(value.uncertainty)
+            + encode_uvarint(value.resolution)
+        )
     if isinstance(value, NativeProjection):
-        return encode_uvarint(value.media_type_ref) + encode_value(value.payload)
-    return encode_value(value)
+        return b"P" + encode_uvarint(value.media_type_ref) + encode_value(value.payload)
+    return b"V" + encode_value(value)
+
+
+def _dependency_ancestors(branches: tuple[NativeBranch, ...]) -> dict[int, set[int]]:
+    refs = {b.branch_ref for b in branches}
+    deps = {b.branch_ref: set(b.depends_on) for b in branches}
+    for ref, direct in deps.items():
+        if not direct <= refs:
+            raise DSRExecutionError("BRANCH_DEPENDENCY_MISSING")
+    visiting: set[int] = set()
+    visited: set[int] = set()
+    ancestors: dict[int, set[int]] = {ref: set() for ref in refs}
+
+    def visit(ref: int) -> set[int]:
+        if ref in visiting:
+            raise DSRExecutionError("BRANCH_DEPENDENCY_CYCLE")
+        if ref in visited:
+            return ancestors[ref]
+        visiting.add(ref)
+        total: set[int] = set()
+        for dep in sorted(deps[ref]):
+            total.add(dep)
+            total.update(visit(dep))
+        visiting.remove(ref)
+        visited.add(ref)
+        ancestors[ref] = total
+        return total
+
+    for ref in sorted(refs):
+        visit(ref)
+    return ancestors
+
+
+def _causal_maximal_changes(changed: list[tuple[int, object]], ancestors: dict[int, set[int]]) -> list[tuple[int, object]]:
+    refs = {ref for ref, _ in changed}
+    return [
+        (ref, value) for ref, value in changed
+        if not any(ref in ancestors[other] for other in refs if other != ref)
+    ]
+
+
+def _distinct_count(changed: list[tuple[int, object]], *, missing: object | None = None) -> int:
+    fingerprints = set()
+    for _, value in changed:
+        if missing is not None and value is missing:
+            fingerprints.add(b"M")
+        else:
+            fingerprints.add(_fingerprint(value))
+    return len(fingerprints)
 
 
 def merge_native_branches(
@@ -158,6 +234,7 @@ def merge_native_branches(
         raise DSRExecutionError("BRANCHES_REQUIRED")
     if len({b.branch_ref for b in ordered}) != len(ordered):
         raise DSRExecutionError("DUPLICATE_BRANCH_REF")
+    ancestors = _dependency_ancestors(ordered)
     base_hash = registered_state_hash(base)
     finals: list[tuple[NativeBranch, NativeSemanticState]] = []
     for branch in ordered:
@@ -175,9 +252,8 @@ def merge_native_branches(
     for key in sorted(all_axis_keys):
         base_value = base_axes.get(key)
         rows = [(branch.branch_ref, _map_axes(state).get(key)) for branch, state in finals]
-        changed = _changed_values(base_value, rows)
-        distinct = {value for _, value in changed}
-        if len(distinct) > 1:
+        changed = _causal_maximal_changes(_changed_values(base_value, rows), ancestors)
+        if _distinct_count(changed) > 1:
             conflicts.append(NativeMergeConflict(CONFLICT_AXIS, (key,), tuple(ref for ref, _ in changed)))
             continue
         if changed:
@@ -199,9 +275,8 @@ def merge_native_branches(
     for key in sorted(all_context_keys):
         base_value = base_context.get(key, missing)
         rows = [(branch.branch_ref, mapping.get(key, missing)) for branch, mapping in final_contexts]
-        changed = [(ref, value) for ref, value in rows if value != base_value]
-        fingerprints = {_fingerprint(value) if value is not missing else b"\x00" for _, value in changed}
-        if len(fingerprints) > 1:
+        changed = _causal_maximal_changes([(ref, value) for ref, value in rows if value != base_value], ancestors)
+        if _distinct_count(changed, missing=missing) > 1:
             conflicts.append(NativeMergeConflict(CONFLICT_CONTEXT, (key,), tuple(ref for ref, _ in changed)))
             continue
         if changed:
@@ -222,9 +297,8 @@ def merge_native_branches(
     for key in sorted(all_proj_keys):
         base_value = base_proj.get(key, missing)
         rows = [(branch.branch_ref, mapping.get(key, missing)) for branch, mapping in final_projs]
-        changed = [(ref, value) for ref, value in rows if value != base_value]
-        fingerprints = {_fingerprint(value) if value is not missing else b"\x00" for _, value in changed}
-        if len(fingerprints) > 1:
+        changed = _causal_maximal_changes([(ref, value) for ref, value in rows if value != base_value], ancestors)
+        if _distinct_count(changed, missing=missing) > 1:
             conflicts.append(NativeMergeConflict(CONFLICT_PROJECTION, (key,), tuple(ref for ref, _ in changed)))
             continue
         if changed:
@@ -245,9 +319,8 @@ def merge_native_branches(
     for key in sorted(all_rel_keys):
         base_value = base_status.get(key, 0)
         rows = [(branch.branch_ref, status.get(key, 0)) for branch, status in final_statuses]
-        changed = _changed_values(base_value, rows)
-        distinct = {value for _, value in changed}
-        if len(distinct) > 1:
+        changed = _causal_maximal_changes(_changed_values(base_value, rows), ancestors)
+        if _distinct_count(changed) > 1:
             conflicts.append(NativeMergeConflict(CONFLICT_RELATION_POLARITY, key, tuple(ref for ref, _ in changed)))
             continue
         if changed:

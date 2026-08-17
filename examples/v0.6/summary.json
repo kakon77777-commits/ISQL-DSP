@@ -1,0 +1,33 @@
+{
+  "causal_merge_conflicts": 0,
+  "causal_merge_risk": {
+    "kind": "point",
+    "value": 5
+  },
+  "concurrent_conflicts": 1,
+  "core_program_wire_prefix": "ISQL1:EXEC:R4:DSRP21",
+  "genesis_bytes": 56,
+  "identifier_leaks": {
+    "causal-merged.isqln": [],
+    "deploy-final.isqln": [],
+    "deploy.isqlp": [],
+    "genesis.isqln": [],
+    "history.isqle": [],
+    "parallel.isqlb": [],
+    "research.isqlb": [],
+    "review.isqlb": [],
+    "rollback-result.isqln": [],
+    "rollback.isqlp": []
+  },
+  "program_bytes": 115,
+  "program_final_bytes": 122,
+  "registry_bytes": 280,
+  "registry_revision": 26,
+  "rollback_exact_base": true,
+  "rollback_program_bytes": 103,
+  "rollback_result_bytes": 56,
+  "rollback_status": 2,
+  "schema": "isql.dsr-v0.6-example-summary/v0.6",
+  "stream_bytes": 303,
+  "success_status": 1
+}

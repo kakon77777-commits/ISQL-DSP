@@ -1,3 +1,2 @@
-version= 0.5.0
-module= /tmp/isql_dsr_v05_venv/lib/python3.13/site-packages/isql_dsr/__init__.py
-sys.path= ['', '/usr/lib/python313.zip', '/usr/lib/python3.13', '/usr/lib/python3.13/lib-dynload', '/tmp/isql_dsr_v05_venv/lib/python3.13/site-packages']
+0.6.0
+/mnt/data/isql_dsr_v06_verify_venv/lib/python3.13/site-packages/isql_dsr/__init__.py

@@ -10,7 +10,8 @@ from .branch import NativeBranch, decode_branch, encode_branch, merge_native_bra
 from .bridge import (
     to_core_bundle, to_core_sem_envelope, to_core_state_envelope,
     to_native_core_bundle, to_native_core_sem_envelope, to_native_core_state_envelope,
-    to_registered_core_exec_envelope, to_registered_core_sem_envelope, to_registered_core_state_envelope,
+    to_registered_core_exec_envelope, to_registered_core_program_envelope,
+    to_registered_core_sem_envelope, to_registered_core_state_envelope,
 )
 from .canonical import state_hash
 from .diff import diff_states
@@ -28,6 +29,7 @@ from .registry import (
     extend_registry_for_state, registry_hash,
 )
 from .runtime import apply_event, replay
+from .program import decode_program, encode_program, execute_native_program, program_from_stream
 from .stream import build_event_stream, decode_event_stream, encode_event_stream, replay_native_stream
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import validate_state
@@ -67,12 +69,16 @@ def _read_stream(path: str, registry: NativeSymbolRegistry):
     return decode_event_stream(Path(path).read_bytes(), registry)
 
 
+def _read_program(path: str, registry: NativeSymbolRegistry):
+    return decode_program(Path(path).read_bytes(), registry)
+
+
 def _emit(value: Any) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.5 (native execution semantics + branches)")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.6 (causal native programs + atomic transactions)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis inspection DSR state")
@@ -134,6 +140,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--base-registry")
     sp.add_argument("--out", required=True)
     sp.add_argument("--branch-id", action="append", default=[])
+    sp.add_argument("--program-id", action="append", default=[])
+    sp.add_argument("--instruction-id", action="append", default=[])
 
     sp = sub.add_parser("registered-pack", help="Compile inspection state into registry-bound canonical v0.5 .isqln")
     sp.add_argument("--state", required=True)
@@ -165,6 +173,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--genesis", required=True)
     sp.add_argument("--events", required=True)
     sp.add_argument("--registry", required=True)
+    sp.add_argument("--depends-on", action="append", default=[])
     sp.add_argument("--out", required=True)
 
     sp = sub.add_parser("branch-merge", help="Three-way merge native branch artifacts against one registered base")
@@ -172,6 +181,25 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--branch", action="append", required=True)
     sp.add_argument("--registry", required=True)
     sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("program-pack", help="Compile a native event stream into canonical causal .isqlp program")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--genesis-native", required=True)
+    sp.add_argument("--stream", required=True)
+    sp.add_argument("--program-id", required=True)
+    sp.add_argument("--instruction-id", action="append", required=True)
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("program-run", help="Execute canonical .isqlp atomically against one registered genesis")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--genesis-native", required=True)
+    sp.add_argument("--program", required=True)
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("program-bridge", help="Export Core-parseable EXEC/R4/DSRP wire for a canonical .isqlp program")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--genesis-native", required=True)
+    sp.add_argument("--program", required=True)
 
     sp = sub.add_parser("bridge-r4", help="Export Core-parseable R4 registered state/semantic or native execution stream wire")
     sp.add_argument("--registry", required=True)
@@ -280,6 +308,10 @@ def main(argv: list[str] | None = None) -> int:
                 registry = extend_registry_for_events(registry, events)
             for branch_id in args.branch_id:
                 registry, _ = registry.intern_text(SymbolNamespace.BRANCH_ID, branch_id)
+            for program_id in args.program_id:
+                registry, _ = registry.intern_text(SymbolNamespace.PROGRAM_ID, program_id)
+            for instruction_id in args.instruction_id:
+                registry, _ = registry.intern_text(SymbolNamespace.INSTRUCTION_ID, instruction_id)
             payload = encode_registry(registry)
             Path(args.out).write_bytes(payload)
             _emit({
@@ -361,12 +393,19 @@ def main(argv: list[str] | None = None) -> int:
                 raise ValueError("branch id is not present in registry")
             genesis = _read_state(args.genesis)
             stream = build_event_stream(genesis, _read_events(args.events), registry)
-            branch = NativeBranch(branch_ref, genesis.revision, stream.genesis_hash, stream)
+            dependency_refs = []
+            for dep_id in args.depends_on:
+                dep_ref = registry.lookup_text(SymbolNamespace.BRANCH_ID, dep_id)
+                if dep_ref is None:
+                    raise ValueError(f"dependency branch id is not present in registry: {dep_id}")
+                dependency_refs.append(dep_ref)
+            branch = NativeBranch(branch_ref, genesis.revision, stream.genesis_hash, stream, tuple(dependency_refs))
             payload = encode_branch(branch)
             Path(args.out).write_bytes(payload)
             _emit({
-                "schema": "isql.dsr-branch-artifact/v0.5",
+                "schema": "isql.dsr-branch-artifact/v0.6",
                 "branch_ref": branch.branch_ref,
+                "depends_on": list(branch.depends_on),
                 "base_revision": branch.base_revision,
                 "base_hash": branch.base_hash,
                 "records": len(branch.stream.records),
@@ -383,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = encode_registered_state(result.state)
             Path(args.out).write_bytes(payload)
             _emit({
-                "schema": "isql.dsr-branch-merge-result/v0.5",
+                "schema": "isql.dsr-branch-merge-result/v0.6",
                 "branch_refs": list(result.branch_refs),
                 "revision": result.state.revision,
                 "state_hash": registered_state_hash(result.state),
@@ -394,6 +433,67 @@ def main(argv: list[str] | None = None) -> int:
                 "bytes": len(payload),
                 "path": str(Path(args.out)),
             })
+            return 0
+
+        if args.command == "program-pack":
+            registry = _read_registry(args.registry)
+            genesis = _read_registered(args.genesis_native, registry)
+            stream = _read_stream(args.stream, registry)
+            if stream.genesis_hash != registered_state_hash(genesis):
+                raise ValueError("program stream genesis does not match registered genesis")
+            program_ref = registry.lookup_text(SymbolNamespace.PROGRAM_ID, args.program_id)
+            if program_ref is None:
+                raise ValueError("program id is not present in registry")
+            instruction_refs = []
+            for instruction_id in args.instruction_id:
+                ref = registry.lookup_text(SymbolNamespace.INSTRUCTION_ID, instruction_id)
+                if ref is None:
+                    raise ValueError(f"instruction id is not present in registry: {instruction_id}")
+                instruction_refs.append(ref)
+            program = program_from_stream(stream, registry, program_ref, tuple(instruction_refs))
+            if program.base_revision != genesis.revision or program.base_hash != registered_state_hash(genesis):
+                raise ValueError("program base does not match registered genesis")
+            payload = encode_program(program)
+            Path(args.out).write_bytes(payload)
+            _emit({
+                "schema": "isql.dsr-program-artifact/v0.6",
+                "program_ref": program.program_ref,
+                "base_revision": program.base_revision,
+                "base_hash": program.base_hash,
+                "instructions": len(program.instructions),
+                "bytes": len(payload),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
+        if args.command == "program-run":
+            registry = _read_registry(args.registry)
+            genesis = _read_registered(args.genesis_native, registry)
+            program = _read_program(args.program, registry)
+            result = execute_native_program(genesis, program, registry)
+            payload = encode_registered_state(result.state)
+            Path(args.out).write_bytes(payload)
+            receipt = result.receipt
+            _emit({
+                "schema": "isql.dsr-program-execution-result/v0.6",
+                "status": receipt.status,
+                "program_ref": receipt.program_ref,
+                "base_hash": receipt.base_hash,
+                "final_hash": receipt.final_hash,
+                "execution_order": list(receipt.execution_order),
+                "failed_instruction_ref": receipt.failed_instruction_ref,
+                "error_code": receipt.error_code,
+                "rolled_back": receipt.status != 1,
+                "bytes": len(payload),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
+        if args.command == "program-bridge":
+            registry = _read_registry(args.registry)
+            genesis = _read_registered(args.genesis_native, registry)
+            program = _read_program(args.program, registry)
+            _emit(to_registered_core_program_envelope(program, genesis).to_dict())
             return 0
 
         if args.command == "bridge-r4":

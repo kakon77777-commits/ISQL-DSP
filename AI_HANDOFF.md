@@ -1,47 +1,48 @@
-# AI_HANDOFF — ISQL-DSR Runtime v0.5.0
+# AI_HANDOFF — ISQL-DSR Runtime v0.6.0
 
 ## Canonical rule
 
-Do not promote JSON, Markdown, natural language or human-readable field names back into the canonical state layer.
+Do not promote JSON, Markdown, natural language, receipt text, or human-readable field names into the canonical machine layer.
 
-Canonical artifacts are `.isqlr`, `.isqln`, `.isqle`, and `.isqlb`.
+Canonical artifacts are `.isqlr`, `.isqln`, `.isqle`, `.isqlb`, and `.isqlp`.
 
 ## Non-negotiable invariants
 
 1. Registry refs are references, not meaning itself.
-2. Registered state is bound to registry revision + prefix hash.
+2. Registered snapshots are bound to registry revision + prefix hash.
 3. Positive and negative relation sets are disjoint.
-4. `deny_relation` means explicit negative assertion; `retract_relation` means return to unasserted/unknown.
-5. Canonical replay must use `apply_native_event()` and must not require `inspect_registered_state()` or `runtime.apply_event()`.
-6. Native fusion and topology operate over numeric registered structures.
-7. Branch merge must be deterministic under branch-order permutation.
-8. Conflicts must be explicit; never resolve by whichever branch is processed first.
-9. `.isqlb` does not mutate the registry. Branch IDs must already exist in `BRANCH_ID` namespace.
-10. Compression/storage claims must count registry and decoder side information.
-11. Core envelope `R4` is transport compatibility with Core v0.4, not DSR version identity.
+4. Native replay and program execution must not require `SemanticState` materialization.
+5. `.isqlp` instruction opcodes and effect masks are numeric and must agree exactly.
+6. Program dependency graphs must be acyclic and closed over the program instruction set.
+7. Program execution is atomic at publication boundary: failure returns the original base state.
+8. A program is anchored to base revision + registered-state hash.
+9. Program execution order is deterministic topological order with numeric ref tie-breaks.
+10. `.isqlb` causal dependencies form a DAG. Missing dependencies and cycles fail closed.
+11. Merge conflicts are emitted only among causally incomparable maximal changes; a dependent branch may supersede its ancestor.
+12. `.isqlp` and `.isqlb` do not mutate the registry. Required refs must already exist.
+13. Compression/storage claims must count registry, program, stream and decoder side information.
+14. Core envelope `R4` is transport compatibility with Core v0.4, not DSR release identity.
+15. `DSRE` means event-stream payload; `DSRP` means causal-program payload.
 
-## v0.5 canonical relation status
+## v0.6 execution model
 
-For relation triple $r$:
+Program:
 
-$$
-\operatorname{status}(r)\in\{-1,0,+1\}.
-$$
+`base state + causal instruction DAG -> internal working states -> commit OR rollback`
 
-- `+1`: positive assertion.
-- `-1`: negative assertion.
-- `0`: no current assertion.
+A failed instruction may have predecessors that executed internally, but those intermediate states are never returned as the committed result.
 
-Do not collapse `-1` and `0`.
+Execution receipts are inspection outputs. They may contain a human-readable error code for debugging, but that string is not canonical machine state.
 
-## Branch merge scope
+## Branch causality
 
-v0.5 merges numeric context, axes, relation polarity and projections. Topology is invalidated when active positive relations change. Conflicting changes retain the base value/status and emit a machine conflict.
+`depends_on` is numeric causal metadata, not a human workflow note. During merge, only causally maximal changes participate in conflict selection. Two incomparable maximal branches that disagree still produce an explicit machine conflict.
 
 ## Next plausible frontier
 
-- Replayable merge commits as first-class native events.
-- Causal/vector-clock branch metadata for distributed multi-agent streams.
-- Native executable rules over SEM/STATE without inspection adapters.
-- Registry sharding / distributed symbol reconciliation.
-- Numeric topology operators beyond weak components/cycle rank.
+- Conditional guards / preconditions encoded as native predicates.
+- Reusable subprograms and call/return semantics.
+- Program receipts as optional binary audit artifacts.
+- Transaction groups across multiple identities/states.
+- Capability/effect permissions and sandboxed operator sets.
+- Distributed registry reconciliation and signed program provenance.

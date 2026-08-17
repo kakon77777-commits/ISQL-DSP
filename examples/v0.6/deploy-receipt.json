@@ -1,0 +1,13 @@
+{
+  "base_hash": "f1e2ad514bbb2582f2afdba5f9fad5615581aaa26b9feaa103457841b7f56777",
+  "error_code": "",
+  "execution_order": [
+    21,
+    22,
+    23
+  ],
+  "failed_instruction_ref": 0,
+  "final_hash": "45d88212cbd409449c7c19919db5caffea6b2a8a9d0cb946edd709b047eed82d",
+  "program_ref": 19,
+  "status": 1
+}

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isql-dsr-runtime"
-version = "0.5.0"
-description = "ISQL Dynamic Spectrum Runtime v0.5: machine-native execution semantics, signed relation polarity, branch event streams, deterministic native merge, and registered AI-native state."
+version = "0.6.0"
+description = "ISQL Dynamic Spectrum Runtime v0.6: causal machine programs, numeric effect masks, atomic rollback, causal branch merge, and registered AI-native execution."
 requires-python = ">=3.11"
 authors = [{name = "Neo.K / EVEMISSLAB"}]
 

@@ -1,86 +1,109 @@
-# ISQL-DSR Runtime v0.5.0
+# ISQL-DSR Runtime v0.6.0
 
-ISQL Dynamic Spectrum Runtime v0.5 is an **AI-native machine-state runtime**. Human-readable JSON is not canonical storage.
+ISQL Dynamic Spectrum Runtime v0.6 is an **AI-native causal execution runtime**. Human-readable JSON is not canonical storage and is not required by the execution core.
 
 ## Canonical authority
 
 The machine path is:
 
-`.isqlr -> .isqln + .isqle -> .isqlb -> native merge/execution`
+`.isqlr -> .isqln + .isqle + .isqlp + .isqlb -> native execution / merge`
 
 - `.isqlr`: append-only shared machine symbol space.
-- `.isqln`: registry-bound materialized state.
-- `.isqle`: hash-chained native execution stream.
-- `.isqlb`: branch/fork artifact.
+- `.isqln`: registry-bound materialized machine state.
+- `.isqle`: hash-chained native event stream.
+- `.isqlb`: native branch/fork artifact with causal branch dependencies.
+- `.isqlp`: causal native program containing numeric instruction refs, opcodes, effect masks, dependency refs, and native payloads.
 
-JSON, Markdown and natural-language explanations are optional inspection projections.
+JSON, Markdown, natural-language explanations and execution receipts are inspection projections. They are not canonical state authority.
 
-## What v0.5 adds
+## What v0.6 adds
 
-- Direct native executor: replay no longer translates machine state back to `SemanticState`.
-- Positive / negative relation polarity.
-- `deny_relation` and `retract_relation` native opcodes.
-- Negative relation voting in multi-source fusion.
-- Numeric topology computation directly over registered relations.
-- `.isqlb` branch artifacts.
-- Deterministic native three-way branch merge.
-- Explicit machine conflicts for axis, relation polarity, context and projection collisions.
-- Branch CLI commands.
+- Canonical `.isqlp` program artifacts.
+- Numeric program/instruction registry namespaces.
+- Operator effect masks.
+- Instruction dependency DAGs.
+- Deterministic topological execution.
+- Atomic program execution with functional rollback.
+- Program execution receipts as non-canonical inspection output.
+- Branch-to-branch causal dependency metadata.
+- Causal merge precedence: a causally later branch can supersede an ancestor without being misclassified as concurrent conflict.
+- `EXEC/R4/DSRP` Core transport for native programs.
+- CLI `program-pack`, `program-run`, `program-bridge`.
 
-## Relation semantics
+## Atomic execution
 
-A relation triple can be positive, negative, or unasserted. Positive and negative copies of the same triple may not coexist in one canonical state.
+A program is anchored to one base snapshot by revision and registered-state hash. Instructions execute on an internal immutable working state. If any instruction fails, the externally returned state is the original base state.
 
-`deny_relation` sets negative polarity. `retract_relation` removes either polarity and returns the relation to unknown/unasserted state.
+A successful program returns the committed final machine state. A failed program returns a receipt naming the failed instruction ref and an inspection error code, while the canonical base state remains unchanged.
+
+## Causal programs
+
+Each instruction declares numeric dependencies. Execution order is a deterministic topological order with instruction-ref tie breaking. Cycles, unknown dependencies, duplicate refs and incorrect effect masks fail closed.
+
+## Core compatibility
+
+The supplied ISQL Core v0.4 parser accepts transport resolutions `R0-R4`. Therefore program transport uses:
+
+`ISQL1:EXEC:R4:DSRP<digits>`
+
+`R4` is the Core transport resolution, not the DSR release number. `DSRP` identifies the program payload. Existing native event streams remain `EXEC/R4/DSRE`.
 
 ## CLI examples
 
-Build a registry including branch IDs:
+Build a registry with program/instruction refs:
 
 ```bash
 isql-dsr registry-build --state genesis.json --events events.json \
-  --branch-id left --branch-id right --out symbols.isqlr
+  --program-id deploy-program \
+  --instruction-id deploy-1 --instruction-id deploy-2 \
+  --out symbols.isqlr
 ```
 
-Pack a registered state:
+Compile state and stream:
 
 ```bash
 isql-dsr registered-pack --state genesis.json --registry symbols.isqlr --out genesis.isqln
+isql-dsr stream-pack --genesis genesis.json --events events.json \
+  --registry symbols.isqlr --out history.isqle
 ```
 
-Pack branch streams:
+Compile a causal program:
 
 ```bash
-isql-dsr branch-pack --branch-id left --genesis genesis.json --events left.json \
-  --registry symbols.isqlr --out left.isqlb
+isql-dsr program-pack --registry symbols.isqlr \
+  --genesis-native genesis.isqln --stream history.isqle \
+  --program-id deploy-program \
+  --instruction-id deploy-1 --instruction-id deploy-2 \
+  --out deploy.isqlp
 ```
 
-Merge branches:
+Execute atomically:
 
 ```bash
-isql-dsr branch-merge --base-native genesis.isqln \
-  --branch left.isqlb --branch right.isqlb \
-  --registry symbols.isqlr --out merged.isqln
+isql-dsr program-run --registry symbols.isqlr \
+  --genesis-native genesis.isqln --program deploy.isqlp \
+  --out final.isqln
 ```
 
-Inspect only when needed:
+Export Core wire:
 
 ```bash
-isql-dsr registered-inspect --native merged.isqln --registry symbols.isqlr
+isql-dsr program-bridge --registry symbols.isqlr \
+  --genesis-native genesis.isqln --program deploy.isqlp
 ```
 
-## Legacy layers
+Causal branch:
 
-v0.1-v0.4 remain separate release artifacts. Legacy JSON, R2 and R3 commands are kept for migration/inspection compatibility but are not the v0.5 canonical authority.
-
-The R4 Core envelope remains a transport-compatibility layer because the supplied Core v0.4 parser recognizes R0-R4. It does not mean this package is DSR v0.4.
+```bash
+isql-dsr branch-pack --branch-id review --depends-on research \
+  --genesis genesis.json --events review.json \
+  --registry symbols.isqlr --out review.isqlb
+```
 
 ## Tests
-
-Run from source:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-See `docs/NATIVE_FORMAT_v0.5.md` for the byte-level contract.
+See `docs/NATIVE_FORMAT_v0.6.md` for the byte-level program and causal branch contract.
