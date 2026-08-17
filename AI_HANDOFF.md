@@ -1,49 +1,70 @@
-# AI_HANDOFF — ISQL-DSR Runtime v0.9.0
+# AI_HANDOFF — ISQL-DSR Runtime v1.0.0
 
-## Canonical rule
+## Read this first
 
-Do not promote JSON, Markdown, textual variable names, jump labels, debug names, or human-facing schemas into the canonical machine layer. `.isqlr/.isqln/.isqle/.isqlb/.isqlp` remain canonical binary artifacts.
+This is the **internal AI-native parallel implementation** of ISQL-DSR. Do not redesign it around human readability.
 
-## v0.9 invariants
+Canonical authority order:
 
-1. VM program payload format version 9 is current; v7 and v8 programs remain decodable.
-2. Registers store validated DSR semantic values, not human variable strings.
-3. Numeric algebra accepts numeric `PointValue` only; booleans are not numeric.
-4. ADD/SUB/MUL preserve integer points only when both operands are integer points; mixed numeric operations promote to float. DIV returns float and rejects zero divisor.
-5. EQ is structural semantic-value equality. LT/LE require numeric points and produce boolean point values.
-6. Register guards are fail-closed transaction preconditions.
-7. Predicate registers are conditional execution controls: opposite boolean means skip, not failure.
-8. Missing or non-boolean predicate registers fail closed.
-9. Skipped instructions satisfy structural DAG dependency completion but do not enter execution trace or mutate state/registers.
-10. Register guards and predicates participate in scheduler hazard analysis.
-11. Static linking preserves numeric instruction refs; duplicate refs, registry mismatches, and conflicting bindings are rejected.
-12. Sequential linking adds causal edges between prior-module exits and next-module entries. Module RETURN instructions are removed because the linked frame owns the return interface.
-13. Existing transaction atomicity, state-scoped capability, CALL/RETURN, and deterministic parallel guarantees remain in force.
-14. Core transport remains `EXEC/R4/DSRV`; `R4` is Core resolution, not DSR version.
-15. Registry/decoder/program side information must remain included in any compression-cost claim.
+1. `.isqlr` shared machine registry;
+2. `.isqln` registered native state;
+3. `.isqle` native transition stream;
+4. `.isqlb` native causal branch;
+5. `.isqlp` native program.
 
-## Current native compute opcodes
+JSON/Markdown/text are inspection or documentation projections only.
 
-- CONST = 1201
-- MOVE = 1202
-- ADD = 1211
-- SUB = 1212
-- MUL = 1213
-- DIV = 1214
-- EQ = 1221
-- LT = 1222
-- LE = 1223
+## Invariants that must not be broken
 
-## Control model
+- Registry IDs are stable references, never identical to meaning.
+- Identity and representation remain separate.
+- Canonical state/program hashes derive from native bytes, not rendered JSON.
+- Existing registry prefix hashes remain valid after append-only extension.
+- VM transactions publish all-or-nothing.
+- Program execution remains deterministic under serial and supported parallel scheduling.
+- CALL cycles remain fail-closed.
+- No unbounded iteration/recursion may enter the canonical VM without an explicit finite resource bound.
+- Core transport grammar remains independent of DSR release numbering.
 
-Do not replace predicated DAG control with textual labels merely for readability. v0.9 intentionally keeps causal DAG scheduling:
+## v1.0 machine-value layer
+
+Semantic values now include:
+
+- point;
+- interval;
+- candidate set;
+- vector;
+- numeric-field record.
+
+Record field names belong in `.isqlr` under `FIELD_ID`; canonical records contain only numeric field refs.
+
+## v1.0 function contract
+
+Program format 10 encodes top-level argument and return type tags. Legacy v7/v8/v9 programs decode with `TYPE_ANY` signatures.
+
+Do not silently coerce BOOL to INT. Do not silently coerce arbitrary semantic values across signature boundaries.
+
+## v1.0 bounded iteration
+
+`REPEAT_CALL` is a finite subprogram-repetition primitive. Its count must satisfy:
 
 $$
-	ext{comparison}
-\to
-	ext{boolean register}
-\to
-	ext{predicated instruction set}.
+1\le k\le1024.
 $$
 
-A future version may add richer typed register schemas or more algebra only if a concrete machine-native use case requires them.
+This is not permission to add unrestricted JMP or backward edges. Any failure in any iteration rolls back the whole root transaction.
+
+## v1.0 optimizer
+
+The optimizer is not allowed to optimize by intuition. It may only apply transformations whose observable transaction semantics are preserved.
+
+Current intentional conservatism:
+
+- fold scalar register operations only with statically known operands;
+- remove dead unconditional CONST instructions;
+- preserve or bridge causal dependencies after removal;
+- do not erase runtime error paths that are not statically discharged.
+
+## Next research frontier
+
+Potential post-v1.0 work should be treated as a new design phase rather than automatic version churn. Candidates include richer structural typing, verified cost/resource types, machine-level optimizer proofs, and native inter-agent program exchange benchmarks.

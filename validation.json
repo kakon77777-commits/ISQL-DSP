@@ -1,124 +1,133 @@
 {
-  "package": "ISQL_DSR_Runtime",
-  "version": "0.9.0",
-  "canonical_vm_artifact": ".isqlp",
+  "package": "ISQL-DSR Runtime",
+  "version": "1.0.0",
+  "canonical_artifacts": [
+    ".isqlr",
+    ".isqln",
+    ".isqle",
+    ".isqlb",
+    ".isqlp"
+  ],
+  "canonical_human_readable": false,
   "source_tests": {
-    "count": 158,
-    "status": "PASS",
-    "log": "validation/source_unittest_final.txt",
-    "source_pythonpath": "src"
-  },
-  "installed_wheel_tests": {
-    "count": 158,
-    "status": "PASS",
-    "log": "validation/installed_unittest.txt",
-    "source_pythonpath_used": false
-  },
-  "wheel": {
-    "path": "dist/isql_dsr_runtime-0.9.0-py3-none-any.whl",
-    "sha256": "be421eb8fbc1ac53cd2a22401fa3fda48d4a191c95dc13ae508e4a6b6e2ba818",
-    "size_bytes": 73040
-  },
-  "core_v04_parser": {
-    "domain": "EXEC",
-    "resolution": "R4",
-    "control": "DSRV",
-    "payload_digits_only": true,
-    "roundtrip_equal": true,
-    "wire_length": 495,
+    "count": 181,
     "status": "PASS"
   },
+  "fresh_installed_wheel_tests": {
+    "count": 181,
+    "status": "PASS",
+    "source_pythonpath_used": false
+  },
+  "core_v0_4_parser": {
+    "control": "DSRV",
+    "domain": "EXEC",
+    "payload_digits_only": true,
+    "resolution": "R4",
+    "roundtrip_equal": true,
+    "status": "PASS",
+    "wire_length": 345,
+    "wire_prefix": "ISQL1:EXEC:R4:DSRV213081226007010038099163125244088086129036185204169201138000048156073114160182037203071048192242100247204040159156002128002001035005001000004069211187060217067140107140243091047232001031189044122039193164239226153174217013164228242060001021031235007000128002005000000008004006003001006005000000000000001000000001005128002000000"
+  },
   "math_delimiters": {
-    "files_checked": [
+    "files": [
       "README.md",
       "RELEASE_NOTES.md",
       "AI_HANDOFF.md",
-      "docs/NATIVE_VM_v0.9.md",
-      "docs/superpowers/specs/2026-08-18-v09-native-compute-design.md",
-      "docs/superpowers/plans/2026-08-18-v09-native-compute-plan.md"
+      "docs/NATIVE_VM_v1.0.md"
     ],
-    "forbidden_hits": [],
+    "forbidden_delimiter_issues": [],
     "status": "PASS"
   },
-  "example": {
-    "branch_module_bytes": 140,
-    "core_wire": {
-      "control": "DSRV",
-      "digits_only": true,
-      "domain": "EXEC",
-      "resolution": "R4"
-    },
-    "false_branch_return": {
-      "kind": "point",
-      "value": 60
-    },
-    "false_trace": [
+  "examples": {
+    "composite_program_bytes": 152,
+    "composite_returns": [
       [
-        3,
-        4
+        17,
+        {
+          "fields": [
+            {
+              "ref": 10,
+              "value": {
+                "items": [
+                  {
+                    "kind": "point",
+                    "value": 4
+                  },
+                  {
+                    "kind": "point",
+                    "value": 5
+                  },
+                  {
+                    "kind": "point",
+                    "value": 6
+                  }
+                ],
+                "kind": "vector"
+              }
+            },
+            {
+              "ref": 11,
+              "value": {
+                "kind": "point",
+                "value": 3
+              }
+            }
+          ],
+          "kind": "record"
+        }
       ],
       [
-        3,
-        6
+        15,
+        {
+          "items": [
+            {
+              "kind": "point",
+              "value": 4
+            },
+            {
+              "kind": "point",
+              "value": 5
+            },
+            {
+              "kind": "point",
+              "value": 6
+            }
+          ],
+          "kind": "vector"
+        }
       ],
       [
-        3,
-        7
+        16,
+        {
+          "kind": "point",
+          "value": 3
+        }
       ]
     ],
-    "genesis_bytes": 46,
-    "identifier_leaks": {
-      "branch-module": [],
-      "depends_on": [],
-      "instruction_ref": [],
-      "predicate_register_ref": [],
-      "program_ref": [],
-      "r:left": [],
-      "r:result": [],
-      "register_guards": []
-    },
-    "linked_batches": [
-      [
-        4
-      ],
-      [
-        5
-      ],
-      [
-        6
-      ],
-      [
-        7
-      ]
-    ],
-    "linked_bytes": 159,
-    "registry_bytes": 189,
-    "registry_symbols": 15,
-    "scale_module_bytes": 102,
-    "true_branch_return": {
-      "kind": "point",
-      "value": 30
-    },
-    "true_trace": [
-      [
-        3,
-        4
-      ],
-      [
-        3,
-        5
-      ],
-      [
-        3,
-        7
-      ]
-    ]
+    "optimizer_instruction_after": 1,
+    "optimizer_instruction_before": 3,
+    "optimizer_optimized_bytes": 105,
+    "optimizer_semantics_equal": true,
+    "optimizer_source_bytes": 141,
+    "registry_bytes": 657,
+    "registry_symbols": 38,
+    "repeat_child_bytes": 165,
+    "repeat_final_counter": 4,
+    "repeat_root_bytes": 109,
+    "schema_label_leaks": {
+      "composite.isqlp": [],
+      "genesis.isqln": [],
+      "optimizer-optimized.isqlp": [],
+      "optimizer-source.isqlp": [],
+      "repeat-child.isqlp": [],
+      "repeat-final.isqln": [],
+      "repeat-root.isqlp": []
+    }
   },
-  "semantic_contract": {
-    "predicate_false": "skip instruction; no transaction failure",
-    "register_guard_false": "abort transaction fail-closed",
-    "branching_model": "predicated causal DAG; no program-counter jump",
-    "linking": "static native program composition; no new persistent artifact"
+  "wheel": {
+    "file": "isql_dsr_runtime-1.0.0-py3-none-any.whl",
+    "size_bytes": 79033,
+    "sha256": "9455ae2f70cf5ee9406e4cd03ce1968001baa5e19aa317293c66e20639455f1f"
   },
   "status": "PASS"
 }

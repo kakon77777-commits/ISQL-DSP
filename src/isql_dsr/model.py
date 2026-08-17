@@ -101,7 +101,51 @@ class CandidateSetValue:
         return {"kind": "candidates", "values": list(self.values)}
 
 
-SemanticValue: TypeAlias = PointValue | IntervalValue | CandidateSetValue
+@dataclass(frozen=True, slots=True)
+class VectorValue:
+    items: tuple["SemanticValue", ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.items, tuple):
+            raise DSRValidationError("VECTOR_ITEMS_MUST_BE_TUPLE")
+        if not all(isinstance(x, (PointValue, IntervalValue, CandidateSetValue, VectorValue, RecordValue)) for x in self.items):
+            raise DSRValidationError("VECTOR_ITEM_INVALID")
+
+    def to_dict(self) -> dict[str, JSONValue]:
+        return {"kind": "vector", "items": [x.to_dict() for x in self.items]}
+
+
+@dataclass(frozen=True, slots=True)
+class RecordValue:
+    fields: tuple[tuple[int, "SemanticValue"], ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.fields, tuple):
+            raise DSRValidationError("RECORD_FIELDS_MUST_BE_TUPLE")
+        cleaned = []
+        seen = set()
+        for row in self.fields:
+            if not isinstance(row, tuple) or len(row) != 2:
+                raise DSRValidationError("RECORD_FIELD_INVALID")
+            ref, value = row
+            if not isinstance(ref, int) or isinstance(ref, bool) or ref <= 0:
+                raise DSRValidationError("RECORD_FIELD_REF_INVALID")
+            if ref in seen:
+                raise DSRValidationError("RECORD_FIELD_REF_DUPLICATE")
+            if not isinstance(value, (PointValue, IntervalValue, CandidateSetValue, VectorValue, RecordValue)):
+                raise DSRValidationError("RECORD_FIELD_VALUE_INVALID")
+            seen.add(ref)
+            cleaned.append((ref, value))
+        object.__setattr__(self, "fields", tuple(sorted(cleaned, key=lambda row: row[0])))
+
+    def to_dict(self) -> dict[str, JSONValue]:
+        return {
+            "kind": "record",
+            "fields": [{"ref": ref, "value": value.to_dict()} for ref, value in self.fields],
+        }
+
+
+SemanticValue: TypeAlias = PointValue | IntervalValue | CandidateSetValue | VectorValue | RecordValue
 
 
 def semantic_value_from_dict(value: Mapping[str, Any]) -> SemanticValue:
@@ -117,6 +161,21 @@ def semantic_value_from_dict(value: Mapping[str, Any]) -> SemanticValue:
         if not isinstance(raw, list):
             raise DSRValidationError("CANDIDATE_VALUES_MUST_BE_LIST")
         return CandidateSetValue(tuple(raw))
+    if kind == "vector":
+        raw = value.get("items")
+        if not isinstance(raw, list):
+            raise DSRValidationError("VECTOR_ITEMS_MUST_BE_LIST")
+        return VectorValue(tuple(semantic_value_from_dict(x) for x in raw))
+    if kind == "record":
+        raw = value.get("fields")
+        if not isinstance(raw, list):
+            raise DSRValidationError("RECORD_FIELDS_MUST_BE_LIST")
+        rows = []
+        for row in raw:
+            if not isinstance(row, Mapping):
+                raise DSRValidationError("RECORD_FIELD_MUST_BE_OBJECT")
+            rows.append((row.get("ref"), semantic_value_from_dict(row.get("value"))))
+        return RecordValue(tuple(rows))
     raise DSRValidationError("UNKNOWN_AXIS_VALUE_KIND")
 
 
@@ -131,7 +190,7 @@ class SpectrumAxis:
     def __post_init__(self) -> None:
         object.__setattr__(self, "key", _text(self.key, "AXIS_KEY_REQUIRED"))
         object.__setattr__(self, "domain", _text(self.domain, "AXIS_DOMAIN_REQUIRED"))
-        if not isinstance(self.value, (PointValue, IntervalValue, CandidateSetValue)):
+        if not isinstance(self.value, (PointValue, IntervalValue, CandidateSetValue, VectorValue, RecordValue)):
             raise DSRValidationError("AXIS_VALUE_INVALID")
         if isinstance(self.uncertainty, bool):
             raise DSRValidationError("AXIS_UNCERTAINTY_OUT_OF_RANGE")

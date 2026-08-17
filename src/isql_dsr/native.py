@@ -179,6 +179,9 @@ NATIVE_FORMAT_VERSION = 5
 V_POINT = 0
 V_INTERVAL = 1
 V_CANDIDATES = 2
+V_VECTOR = 3
+V_RECORD = 4
+MAX_SEMANTIC_VALUE_DEPTH = 64
 
 
 def _write_text(out: bytearray, value: str) -> None:
@@ -220,9 +223,11 @@ def _read_blob(data: bytes, offset: int) -> tuple[bytes, int]:
     return bytes(data[offset:end]), end
 
 
-def _encode_semantic_value(value: Any) -> bytes:
-    from .model import CandidateSetValue, IntervalValue, PointValue
+def _encode_semantic_value(value: Any, _depth: int = 0) -> bytes:
+    from .model import CandidateSetValue, IntervalValue, PointValue, RecordValue, VectorValue
 
+    if _depth > MAX_SEMANTIC_VALUE_DEPTH:
+        raise DSRValidationError("NATIVE_SEMANTIC_VALUE_DEPTH_EXCEEDED")
     out = bytearray()
     if isinstance(value, PointValue):
         out.append(V_POINT)
@@ -236,14 +241,31 @@ def _encode_semantic_value(value: Any) -> bytes:
         out += encode_uvarint(len(value.values))
         for item in value.values:
             out += encode_value(item)
+    elif isinstance(value, VectorValue):
+        out.append(V_VECTOR)
+        out += encode_uvarint(len(value.items))
+        for item in value.items:
+            _write_blob(out, _encode_semantic_value(item, _depth + 1))
+    elif isinstance(value, RecordValue):
+        out.append(V_RECORD)
+        out += encode_uvarint(len(value.fields))
+        previous = 0
+        for field_ref, item in value.fields:
+            if field_ref <= previous:
+                raise DSRValidationError("NATIVE_RECORD_FIELDS_NONCANONICAL")
+            previous = field_ref
+            out += encode_uvarint(field_ref)
+            _write_blob(out, _encode_semantic_value(item, _depth + 1))
     else:
         raise DSRValidationError("NATIVE_SEMANTIC_VALUE_UNSUPPORTED")
     return bytes(out)
 
 
-def _decode_semantic_value(data: bytes, offset: int) -> tuple[Any, int]:
-    from .model import CandidateSetValue, IntervalValue, PointValue
+def _decode_semantic_value(data: bytes, offset: int, _depth: int = 0) -> tuple[Any, int]:
+    from .model import CandidateSetValue, IntervalValue, PointValue, RecordValue, VectorValue
 
+    if _depth > MAX_SEMANTIC_VALUE_DEPTH:
+        raise DSRValidationError("NATIVE_SEMANTIC_VALUE_DEPTH_EXCEEDED")
     if offset >= len(data):
         raise DSRValidationError("NATIVE_SEMANTIC_VALUE_TRUNCATED")
     tag = data[offset]
@@ -266,6 +288,31 @@ def _decode_semantic_value(data: bytes, offset: int) -> tuple[Any, int]:
                 raise DSRValidationError("NATIVE_CANDIDATE_NOT_SCALAR")
             values.append(value)
         return CandidateSetValue(tuple(values)), offset
+    if tag == V_VECTOR:
+        count, offset = decode_uvarint(data, offset)
+        items = []
+        for _ in range(count):
+            blob, offset = _read_blob(data, offset)
+            value, used = _decode_semantic_value(blob, 0, _depth + 1)
+            if used != len(blob):
+                raise DSRValidationError("NATIVE_VECTOR_ITEM_TRAILING_DATA")
+            items.append(value)
+        return VectorValue(tuple(items)), offset
+    if tag == V_RECORD:
+        count, offset = decode_uvarint(data, offset)
+        fields = []
+        previous = 0
+        for _ in range(count):
+            field_ref, offset = decode_uvarint(data, offset)
+            if field_ref <= previous:
+                raise DSRValidationError("NATIVE_RECORD_FIELDS_NONCANONICAL")
+            previous = field_ref
+            blob, offset = _read_blob(data, offset)
+            value, used = _decode_semantic_value(blob, 0, _depth + 1)
+            if used != len(blob):
+                raise DSRValidationError("NATIVE_RECORD_VALUE_TRAILING_DATA")
+            fields.append((field_ref, value))
+        return RecordValue(tuple(fields)), offset
     raise DSRValidationError("NATIVE_SEMANTIC_VALUE_TAG_UNKNOWN")
 
 

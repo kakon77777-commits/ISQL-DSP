@@ -1,3 +1,2 @@
-0.9.0
-/mnt/data/venv_isql_dsr_v09/lib/python3.13/site-packages/isql_dsr/__init__.py
-1211
+1.0.0
+/tmp/isql_v10_venv/lib/python3.13/site-packages/isql_dsr/__init__.py

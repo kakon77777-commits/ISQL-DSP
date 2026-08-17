@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isql-dsr-runtime"
-version = "0.9.0"
-description = "ISQL Dynamic Spectrum Runtime v0.9: typed register algebra, predicated DAG control, register guards, and static native program linking."
+version = "1.0.0"
+description = "ISQL Dynamic Spectrum Runtime v1.0: typed composite machine values, bounded native iteration, typed signatures, and semantics-preserving optimization."
 requires-python = ">=3.11"
 authors = [{name = "Neo.K / EVEMISSLAB"}]
 

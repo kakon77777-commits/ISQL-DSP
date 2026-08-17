@@ -19,6 +19,7 @@ from .errors import DSRError
 from .events import TransitionEvent
 from .fusion import SemanticProposal
 from .linker import link_vm_programs
+from .optimizer import optimize_vm_program
 from .machine import (
     compile_registered_state, decode_registered_state, encode_registered_state,
     inspect_registered_state, registered_state_hash,
@@ -131,7 +132,7 @@ def _emit(value: Any) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.9 (typed register compute, predicated DAG control, and static linking)")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v1.0 (typed composite machine values, bounded native computation, and optimizer)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis inspection DSR state")
@@ -265,7 +266,12 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--parallel-modules", action="store_true", help="preserve modules without adding sequential causal edges")
     sp.add_argument("--out", required=True)
 
-    sp = sub.add_parser("vm-run", help="Execute v0.9 typed-register/scoped-capability .isqlp transaction across registered state slots")
+    sp = sub.add_parser("vm-optimize", help="Optimize a canonical native .isqlp program without executing it")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--program", required=True)
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("vm-run", help="Execute v1.0 typed/composite register VM transaction across registered state slots")
     sp.add_argument("--registry", required=True)
     sp.add_argument("--program", required=True)
     sp.add_argument("--state", action="append", required=True, help="numeric SLOT_REF=PATH")
@@ -596,6 +602,22 @@ def main(argv: list[str] | None = None) -> int:
                 "module_count": len(modules),
                 "instruction_count": len(linked.instructions),
                 "sequential": not args.parallel_modules,
+                "bytes": len(raw),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
+        if args.command == "vm-optimize":
+            registry = _read_registry(args.registry)
+            program = _read_vm_program(args.program, registry)
+            optimized = optimize_vm_program(program)
+            raw = encode_vm_program(optimized)
+            Path(args.out).write_bytes(raw)
+            _emit({
+                "schema": "isql.dsr-vm-optimize-result/v1.0",
+                "program_ref": optimized.program_ref,
+                "before_instructions": len(program.instructions),
+                "after_instructions": len(optimized.instructions),
                 "bytes": len(raw),
                 "path": str(Path(args.out)),
             })

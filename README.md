@@ -1,80 +1,122 @@
-# ISQL-DSR Runtime v0.9.0
+# ISQL-DSR Runtime v1.0.0
 
-ISQL Dynamic Spectrum Runtime v0.9 turns the register-dataflow VM into a native machine-value compute layer. It adds typed register algebra, semantic comparison, predicated DAG branching, fail-closed register guards, and static program linking while preserving the existing AI-native artifact family.
+**AI-native dynamic spectral semantic runtime and computation architecture.**
 
-## Canonical artifact family
-
-- `.isqlr` — append-only shared machine symbol registry.
-- `.isqln` — registered materialized native semantic state.
-- `.isqle` — hash-chained native transition stream.
-- `.isqlb` — causal branch artifact.
-- `.isqlp` — native VM program artifact.
-
-JSON, Markdown, CLI summaries, debug names, and natural language remain inspection/projection layers only.
-
-## What v0.9 adds
-
-1. **Typed register algebra.** Native CONST/MOVE/ADD/SUB/MUL/DIV operate directly on machine semantic values.
-2. **Native comparison.** EQ/LT/LE write boolean `PointValue` results into registers.
-3. **Predicated DAG branching.** Instructions can execute or skip based on a boolean register without introducing a textual jump/program counter.
-4. **Register-level guards.** Initialized/equality guards abort the whole transaction when a machine precondition fails.
-5. **Static program linking.** `link_vm_programs()` and CLI `vm-link` compose multiple `.isqlp` DAG modules into one canonical program.
-6. **Scheduler-aware control flow.** Predicate and guard register reads participate in RAW/WAR/WAW hazard analysis.
-7. **v7/v8 VM compatibility.** Older VM program payloads remain decodable.
-8. **Stable Core transport.** VM programs continue to use `EXEC/R4/DSRV`.
-
-## Algebra contract
-
-For numeric point values $x$ and $y$:
+v1.0 is the first release in this parallel internal line designated as a stable computation-architecture milestone. It preserves the canonical machine-first rule established in v0.3:
 
 $$
-egin{aligned}
-	ext{ADD}(x,y)&=x+y,\\
-	ext{SUB}(x,y)&=x-y,\\
-	ext{MUL}(x,y)&=xy,\\
-	ext{DIV}(x,y)&=x/y,
-	ext{ where }y\neq0.
-\end{aligned}
+\text{Machine Canonical First},
+\qquad
+\text{Human Projection Optional}.
 $$
 
-Booleans are not treated as integers. EQ may compare any valid semantic value structurally; LT/LE require numeric point values.
+The canonical artifacts are still binary/native:
 
-## Branching contract
+- `.isqlr` — shared append-only machine symbol registry;
+- `.isqln` — registered materialized native state;
+- `.isqle` — replayable native event stream;
+- `.isqlb` — causal native branch;
+- `.isqlp` — canonical native program / VM module.
 
-Comparison can write a boolean register:
+JSON, Markdown, natural language, and diagrams are inspection or projection layers. They are not the canonical state/program source.
+
+## v1.0 computation milestone
+
+v1.0 adds five capabilities on top of v0.9 without introducing a program counter or arbitrary backward jump:
+
+1. **Typed composite machine values** — `VectorValue` and numeric-field `RecordValue`.
+2. **Register-local immutable containers** — vector pack/get/len and record pack/get/set.
+3. **Native function signatures** — numeric argument/return type contracts encoded in `.isqlp` format version 10.
+4. **Bounded iteration** — `REPEAT_CALL`, with a hard protocol cap `VM_MAX_REPEAT = 1024`.
+5. **Semantics-preserving static optimizer** — conservative constant folding and dead unconditional-constant elimination.
+
+The VM remains a causal DAG machine. Bounded repetition is represented as a finite synchronous subprogram operation, not as an unrestricted backward jump.
+
+## Typed function boundary
+
+A native program exposes a function signature:
 
 $$
-r_c=	ext{LT}(r_a,r_b).
+\Sigma(P)
+=
+(A_1:\tau_1,\ldots,A_m:\tau_m)
+\rightarrow
+(R_1:\rho_1,\ldots,R_n:\rho_n).
 $$
 
-Two downstream instructions can use opposite predicates on $r_c$. A false predicate is a skip, not a transaction error. A missing or non-boolean predicate fails closed.
+Supported top-level machine type tags in v1.0 include `ANY`, `NULL`, `BOOL`, `INT`, `FLOAT`, `TEXT`, `INTERVAL`, `CANDIDATES`, `VECTOR`, and `RECORD`.
 
-A register guard is different: guard failure means the instruction's machine precondition is violated, so the complete transaction rolls back.
+Type failure aborts the entire transaction. CALL arguments and callee returns are checked at the native boundary.
 
-## Linking
+## Bounded iteration
 
-Sequentially link modules:
+`REPEAT_CALL` executes a subprogram a finite number of times inside one atomic transaction:
+
+$$
+S_0
+\xrightarrow{P_c}
+S_1
+\xrightarrow{P_c}
+\cdots
+\xrightarrow{P_c}
+S_k,
+\qquad
+1\le k\le1024.
+$$
+
+If iteration $j$ fails, the published state is still the original transaction base:
+
+$$
+S_{\mathrm{published}}=S_0.
+$$
+
+Unbounded recursion and arbitrary call cycles remain rejected.
+
+## Optimizer
+
+`optimize_vm_program()` is intentionally conservative. v1.0 folds scalar register operations only when all operands are statically known and only removes dead unconditional `CONST` instructions. It does not remove operations whose failure/guard behavior might be observable.
+
+CLI:
 
 ```bash
-isql-dsr vm-link --registry symbols.isqlr --program-ref 31 \
-  --module normalize.isqlp --module decide.isqlp \
-  --argument-register 42 --return-register 45 \
-  --out linked.isqlp
+isql-dsr vm-optimize \
+  --registry symbols.isqlr \
+  --program source.isqlp \
+  --out optimized.isqlp
 ```
 
-Run the linked program using the existing native VM path:
+## Examples
+
+`examples/v1.0/` contains:
+
+- `composite.isqlp` — typed vector/record construction;
+- `repeat-child.isqlp` and `repeat-root.isqlp` — four-step bounded native iteration;
+- `repeat-final.isqln` — resulting state with counter value 4;
+- `optimizer-source.isqlp` and `optimizer-optimized.isqlp` — equivalent programs reduced from three instructions to one;
+- `symbols.isqlr` and `genesis.isqln`.
+
+See `examples/v1.0/summary.json` for measured artifact sizes and leak checks.
+
+## Test
+
+Source tree:
 
 ```bash
-isql-dsr vm-run --registry symbols.isqlr --program linked.isqlp \
-  --state 12=state.isqln \
-  --arg 42='{"kind":"point","value":9}' \
-  --out-dir result
+PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-## Verification
+Installed wheel tests must run without source-tree `PYTHONPATH`.
 
-```bash
-PYTHONPATH=src python -m unittest discover -s tests -q
+## Core compatibility
+
+DSR VM programs continue to use the existing Core transport contract:
+
+```text
+ISQL1:EXEC:R4:DSRV:<digits-only-payload>
 ```
 
-See `docs/NATIVE_VM_v0.9.md` for the machine contract.
+`R4` is the ISQL Core transport resolution. `DSRV` identifies the DSR VM payload family; it is not the DSR semantic/runtime version number.
+
+## Historical continuity
+
+The package includes the ISQL Canonical Anchor and implementability paper in `docs/`. The public/useful ISQL Core line and this internal AI-native DSR line remain deliberately parallel.

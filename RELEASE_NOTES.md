@@ -1,27 +1,33 @@
-# ISQL-DSR Runtime v0.9.0 — Release Notes
+# ISQL-DSR Runtime v1.0.0 Release Notes
 
-v0.9 adds machine-value computation and conditional control to the existing causal DAG VM without introducing a program counter or human-readable canonical control language.
+## Status
+
+First stable computation-architecture milestone for the internal AI-native ISQL-DSR line.
 
 ## Added
 
-- VM program payload format version 9.
-- register guard metadata and predicate-register metadata on `VMInstruction`.
-- `VM_OP_CONST`, `VM_OP_MOVE`.
-- `VM_OP_ADD`, `VM_OP_SUB`, `VM_OP_MUL`, `VM_OP_DIV`.
-- `VM_OP_EQ`, `VM_OP_LT`, `VM_OP_LE`.
-- fail-closed initialized/equality register guards.
-- skip-on-false boolean instruction predicates.
-- scheduler hazards for guard/predicate/algebra register access.
-- static `link_vm_programs()` DAG composition.
-- CLI `vm-link`.
+- `VectorValue` and `RecordValue` native semantic values.
+- Registry namespace `FIELD_ID` for numeric record-field identity.
+- Native vector register operations: pack, get, length.
+- Native record register operations: pack, get, immutable set.
+- Program-format version 10 with typed argument/return signatures.
+- Strict native machine type validation at root and CALL boundaries.
+- `REPEAT_CALL` bounded subprogram iteration with `VM_MAX_REPEAT = 1024`.
+- Static optimizer API `optimize_vm_program()`.
+- CLI `vm-optimize`.
+- v1.0 examples and native computation design/plan documents.
 
 ## Compatibility
 
-- v0.7 VM `.isqlp` remains decodable.
-- v0.8 VM `.isqlp` remains decodable.
-- Core VM transport remains `EXEC/R4/DSRV`.
-- inspection JSON remains non-canonical.
+- v7, v8, and v9 `.isqlp` program decoders remain supported.
+- Legacy programs receive implicit `TYPE_ANY` function signatures.
+- Existing `vm-run` and `vm-link` inspection response schema labels remain unchanged for compatibility.
+- Core bridge remains `EXEC/R4/DSRV`.
 
-## Atomicity
+## Safety / semantic boundaries
 
-Arithmetic type errors, divide-by-zero, failed register guards, invalid predicates, and linked-program validation errors never publish partial state or return registers.
+- No arbitrary backward jump.
+- No unbounded loop or recursive call cycle.
+- Repeat count is encoded canonically and hard-bounded.
+- Optimizer is deliberately conservative and must preserve transaction-visible failure/state/return semantics.
+- Human-readable formats remain projection layers, not canonical program/state sources.

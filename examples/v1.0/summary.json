@@ -1,0 +1,86 @@
+{
+  "composite_program_bytes": 152,
+  "composite_returns": [
+    [
+      17,
+      {
+        "fields": [
+          {
+            "ref": 10,
+            "value": {
+              "items": [
+                {
+                  "kind": "point",
+                  "value": 4
+                },
+                {
+                  "kind": "point",
+                  "value": 5
+                },
+                {
+                  "kind": "point",
+                  "value": 6
+                }
+              ],
+              "kind": "vector"
+            }
+          },
+          {
+            "ref": 11,
+            "value": {
+              "kind": "point",
+              "value": 3
+            }
+          }
+        ],
+        "kind": "record"
+      }
+    ],
+    [
+      15,
+      {
+        "items": [
+          {
+            "kind": "point",
+            "value": 4
+          },
+          {
+            "kind": "point",
+            "value": 5
+          },
+          {
+            "kind": "point",
+            "value": 6
+          }
+        ],
+        "kind": "vector"
+      }
+    ],
+    [
+      16,
+      {
+        "kind": "point",
+        "value": 3
+      }
+    ]
+  ],
+  "optimizer_instruction_after": 1,
+  "optimizer_instruction_before": 3,
+  "optimizer_optimized_bytes": 105,
+  "optimizer_semantics_equal": true,
+  "optimizer_source_bytes": 141,
+  "registry_bytes": 657,
+  "registry_symbols": 38,
+  "repeat_child_bytes": 165,
+  "repeat_final_counter": 4,
+  "repeat_root_bytes": 109,
+  "schema_label_leaks": {
+    "composite.isqlp": [],
+    "genesis.isqln": [],
+    "optimizer-optimized.isqlp": [],
+    "optimizer-source.isqlp": [],
+    "repeat-child.isqlp": [],
+    "repeat-final.isqln": [],
+    "repeat-root.isqlp": []
+  }
+}

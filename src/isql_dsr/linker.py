@@ -5,7 +5,7 @@ from typing import Iterable
 
 from .errors import DSRValidationError
 from .registry import NativeSymbolRegistry, SymbolNamespace
-from .vm import NativeVMProgram, VMInstruction, VM_OP_RETURN
+from .vm import NativeVMProgram, VMFunctionSignature, VMInstruction, VMRegisterSpec, TYPE_ANY, VM_OP_RETURN
 
 
 def _module_body(program: NativeVMProgram) -> tuple[VMInstruction, ...]:
@@ -103,8 +103,26 @@ def link_vm_programs(
     for item in linked:
         capability_mask |= item.required_capabilities
 
+    arg_type_map = {}
+    return_type_map = {}
+    for module in rows:
+        for spec in module.signature.arguments:
+            prior = arg_type_map.get(spec.register_ref, spec.type_tag)
+            if prior != spec.type_tag and prior != TYPE_ANY and spec.type_tag != TYPE_ANY:
+                raise DSRValidationError("VM_LINK_ARGUMENT_TYPE_CONFLICT")
+            arg_type_map[spec.register_ref] = spec.type_tag if prior == TYPE_ANY else prior
+        for spec in module.signature.returns:
+            prior = return_type_map.get(spec.register_ref, spec.type_tag)
+            if prior != spec.type_tag and prior != TYPE_ANY and spec.type_tag != TYPE_ANY:
+                raise DSRValidationError("VM_LINK_RETURN_TYPE_CONFLICT")
+            return_type_map[spec.register_ref] = spec.type_tag if prior == TYPE_ANY else prior
+    signature = VMFunctionSignature(
+        tuple(VMRegisterSpec(ref, arg_type_map.get(ref, TYPE_ANY)) for ref in argument_registers),
+        tuple(VMRegisterSpec(ref, return_type_map.get(ref, TYPE_ANY)) for ref in return_registers),
+    )
     return NativeVMProgram(
         pin[0], pin[1], program_ref, capability_mask,
         tuple(binding_map[ref] for ref in sorted(binding_map)),
         tuple(linked), argument_registers, return_registers,
+        signature=signature,
     )
