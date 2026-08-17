@@ -1,14 +1,14 @@
 {
   "axes": [],
   "context": {
-    "domain": "research",
     "language": "zh-Hant",
-    "observer": "internal"
+    "task": "deployment-review"
   },
   "history": [],
-  "identity": "isql:demo:adaptive-memory",
+  "identity": "isql:dsr:v02:demo",
   "projections": [],
   "relations": [],
   "revision": 0,
-  "schema": "isql.dsr-state/v0.1"
+  "schema": "isql.dsr-state/v0.2",
+  "topology": []
 }

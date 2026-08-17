@@ -4,9 +4,11 @@ from dataclasses import dataclass, replace
 from typing import Iterable, Mapping, Any
 
 from .canonical import state_hash
-from .errors import DSRExecutionError
+from .errors import DSRExecutionError, DSRValidationError
 from .events import TransitionEvent
-from .model import SemanticProjection, SemanticState, SpectrumAxis, TypedRelation
+from .topology import compute_topology_descriptors, topology_basis_hash
+from .fusion import SemanticProposal, fuse_proposals
+from .model import SemanticProjection, SemanticState, SpectrumAxis, TopologyDescriptor, TypedRelation
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +58,17 @@ def _remove_projection(state: SemanticState, projection_id: str) -> tuple[Semant
     return out
 
 
+def _replace_topology_descriptor(state: SemanticState, descriptor: TopologyDescriptor) -> tuple[TopologyDescriptor, ...]:
+    return tuple(x for x in state.topology if x.descriptor_id != descriptor.descriptor_id) + (descriptor,)
+
+
+def _remove_topology_descriptor(state: SemanticState, descriptor_id: str) -> tuple[TopologyDescriptor, ...]:
+    out = tuple(x for x in state.topology if x.descriptor_id != descriptor_id)
+    if len(out) == len(state.topology):
+        raise DSRExecutionError("TOPOLOGY_DESCRIPTOR_NOT_FOUND")
+    return out
+
+
 def apply_event(state: SemanticState, event: TransitionEvent) -> AppliedTransition:
     if event.base_revision != state.revision:
         raise DSRExecutionError("EVENT_BASE_REVISION_MISMATCH")
@@ -64,6 +77,7 @@ def apply_event(state: SemanticState, event: TransitionEvent) -> AppliedTransiti
         raise DSRExecutionError("EVENT_PREVIOUS_HASH_MISMATCH")
 
     changes: dict[str, Any] = {}
+    history_result: dict[str, Any] | None = None
     payload = event.payload
 
     if event.operation == "set_context":
@@ -82,9 +96,48 @@ def apply_event(state: SemanticState, event: TransitionEvent) -> AppliedTransiti
     elif event.operation == "upsert_relation":
         relation = TypedRelation.from_dict(_require_payload_object(payload, "relation"))
         changes["relations"] = _replace_relation(state, relation)
+        changes["topology"] = ()
     elif event.operation == "remove_relation":
         relation = TypedRelation.from_dict(payload)
         changes["relations"] = _remove_relation(state, relation)
+        changes["topology"] = ()
+    elif event.operation == "refresh_topology":
+        methods = payload.get("methods", ["graph.components", "graph.cycle_rank"])
+        if not isinstance(methods, list) or not all(isinstance(x, str) and x.strip() for x in methods):
+            raise DSRExecutionError("EVENT_TOPOLOGY_METHODS_INVALID")
+        try:
+            changes["topology"] = compute_topology_descriptors(state, methods=tuple(x.strip() for x in methods))
+        except DSRValidationError as exc:
+            raise DSRExecutionError(str(exc)) from exc
+    elif event.operation == "upsert_topology_descriptor":
+        descriptor = TopologyDescriptor.from_dict(_require_payload_object(payload, "descriptor"))
+        if descriptor.basis_hash != topology_basis_hash(state):
+            raise DSRExecutionError("TOPOLOGY_BASIS_HASH_MISMATCH")
+        changes["topology"] = _replace_topology_descriptor(state, descriptor)
+    elif event.operation == "remove_topology_descriptor":
+        descriptor_id = payload.get("descriptor_id")
+        if not isinstance(descriptor_id, str) or not descriptor_id.strip():
+            raise DSRExecutionError("EVENT_TOPOLOGY_DESCRIPTOR_ID_REQUIRED")
+        changes["topology"] = _remove_topology_descriptor(state, descriptor_id.strip())
+    elif event.operation == "fuse_proposals":
+        raw_proposals = payload.get("proposals")
+        if not isinstance(raw_proposals, list):
+            raise DSRExecutionError("EVENT_FUSION_PROPOSALS_REQUIRED")
+        try:
+            proposals = tuple(SemanticProposal.from_dict(x) for x in raw_proposals)
+            decision = fuse_proposals(
+                state,
+                proposals,
+                axis_threshold=payload.get("axis_threshold", 0.5),
+                relation_threshold=payload.get("relation_threshold", 0.5),
+            )
+        except DSRValidationError as exc:
+            raise DSRExecutionError(str(exc)) from exc
+        changes["axes"] = decision.axes
+        changes["relations"] = decision.relations
+        if decision.relations != state.relations:
+            changes["topology"] = ()
+        history_result = {"fusion": decision.to_dict()}
     elif event.operation == "upsert_projection":
         projection = SemanticProjection.from_dict(_require_payload_object(payload, "projection"))
         changes["projections"] = _replace_projection(state, projection)
@@ -100,6 +153,8 @@ def apply_event(state: SemanticState, event: TransitionEvent) -> AppliedTransiti
         "event": event.to_dict(),
         "previous_hash": previous_hash,
     }
+    if history_result is not None:
+        history_record["result"] = history_result
     next_state = replace(
         state,
         revision=state.revision + 1,

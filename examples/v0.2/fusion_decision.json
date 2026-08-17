@@ -1,0 +1,39 @@
+{
+  "algorithm": "weighted-agreement/v0.2",
+  "axes": [
+    {
+      "domain": "ordinal",
+      "key": "risk",
+      "resolution": 3,
+      "uncertainty": 0.41666666666666663,
+      "value": {
+        "kind": "point",
+        "value": "high"
+      }
+    }
+  ],
+  "axis_threshold": 0.5,
+  "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+  "base_revision": 3,
+  "conflicts": [],
+  "identity": "isql:dsr:v02:demo",
+  "proposal_ids": [
+    "proposal-model-a",
+    "proposal-model-b",
+    "proposal-model-c"
+  ],
+  "relation_threshold": 0.5,
+  "relations": [
+    {
+      "object": "risk",
+      "predicate": "reduces",
+      "subject": "mitigation"
+    },
+    {
+      "object": "deployment",
+      "predicate": "affects",
+      "subject": "risk"
+    }
+  ],
+  "schema": "isql.dsr-fusion-decision/v0.2"
+}

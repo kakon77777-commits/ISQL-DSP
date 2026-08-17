@@ -1,36 +1,42 @@
-# ISQL Dynamic Spectrum Runtime v0.1.0
+# ISQL Dynamic Spectrum Runtime v0.2.0
 
-This is the **parallel internal runtime** for the dynamic-spectrum branch of ISQL. It does not replace ISQL Core Runtime v0.4 and does not reduce semantic meaning to registry integer IDs.
+ISQL-DSR is the internal dynamic-semantic runtime line of ISQL. It is intentionally separate from the public/transport-oriented ISQL Core Runtime.
 
-## What v0.1 implements
+v0.2 makes the **Topology** part of the historical Symbol–Topology–Flow design operational and adds deterministic, uncertainty-aware multi-source semantic fusion.
 
-- Stable semantic-object identity separated from mutable representation.
-- Finite-active spectrum axes with point, interval, and candidate-set values.
-- Per-axis uncertainty and resolution.
-- Typed relations.
-- Multiple semantic projections.
-- Context as first-class state.
-- Fail-closed transition events using base revision plus previous state hash.
-- Deterministic replay and semantic diff.
-- Canonical UTF-8 JSON serialization and SHA-256 state hashes.
-- Lossless `STATE/R2` envelope for transport toward ISQL Core without lossy remapping.
+## What v0.2 adds
 
-## What v0.1 deliberately does not claim
+- `SemanticState` schema `isql.dsr-state/v0.2`
+- finite-active spectral axes: point / interval / candidate-set
+- typed relation graph
+- typed topology descriptors bound to a canonical relation-basis SHA-256
+- built-in topology methods:
+  - `graph.components`
+  - `graph.cycle_rank`
+- relation changes automatically invalidate topology descriptors
+- validation rejects stale topology descriptors even without replay history
+- `SemanticProposal` with source weight, base revision, and base state hash
+- deterministic uncertainty-aware proposal fusion
+- explicit fusion conflicts instead of silent winner selection on ties / weak support
+- fusion is a replayable history event
+- `SEM/R2` semantic snapshot bridge
+- `STATE/R2` exact state bridge
+- Core v0.4-compatible digits-only wires using fixed-width decimal UTF-8 byte encoding
+- CLI commands: `topology`, `fuse`, and multi-domain `bridge`
 
-- Registry IDs are not meaning.
-- No universal 12-dimensional ontology is assumed.
-- No universal `0.78` fidelity constant is assumed.
-- No claim that every semantic state has a unique fixed point.
-- No claim that a finite symbol physically stores arbitrary infinite information.
-- No LLM is required by the runtime.
+## Core invariant
 
-## Install from source
+Registry IDs and transport codes are references. They are **not** meaning.
+
+DSR keeps the semantic object explicit. Core bridging happens only after a DSR state or semantic snapshot has been canonicalized.
+
+## Install
 
 ```bash
-python -m pip install .
+python -m pip install dist/isql_dsr_runtime-0.2.0-py3-none-any.whl
 ```
 
-Or run without installation:
+Or run from source:
 
 ```bash
 PYTHONPATH=src python -m isql_dsr --help
@@ -38,50 +44,91 @@ PYTHONPATH=src python -m isql_dsr --help
 
 ## CLI
 
-Create a genesis state:
+Create a state:
 
 ```bash
-isql-dsr new --identity isql:demo:alpha --context-json '{"language":"zh-Hant"}'
+isql-dsr new --identity demo:alpha --context-json '{"task":"deployment-review"}'
 ```
 
-Compute canonical state hash:
+Validate:
 
 ```bash
-isql-dsr hash --state examples/genesis.json
+isql-dsr validate --state examples/v0.2/final_state.json --genesis examples/v0.2/genesis.json
 ```
 
-Apply one transition:
+Compute topology directly:
 
 ```bash
-isql-dsr apply --state examples/genesis.json --event examples/event_upsert_axis.json
+isql-dsr topology --state examples/v0.2/pre_fusion_state.json
 ```
 
-Replay an event array:
+Fuse proposals atomically:
 
 ```bash
-isql-dsr replay --genesis examples/genesis.json --events examples/events.json
+isql-dsr fuse \
+  --state examples/v0.2/pre_fusion_state.json \
+  --proposals examples/v0.2/proposals.json \
+  --event-id evt-demo-fusion
 ```
 
-Validate history by replay:
+Export Core-compatible numeric envelopes:
 
 ```bash
-isql-dsr validate --state examples/final_state.json --genesis examples/genesis.json
+isql-dsr bridge --state examples/v0.2/final_state.json --domain sem
+isql-dsr bridge --state examples/v0.2/final_state.json --domain state
+isql-dsr bridge --state examples/v0.2/final_state.json --domain bundle
 ```
 
-Export a Core transport envelope:
+## Topology semantics
 
-```bash
-isql-dsr bridge --state examples/final_state.json
-```
+Every `TopologyDescriptor` contains a `basis_hash`. For v0.2, the basis is the canonical sorted typed-relation graph. If relations change, old descriptors are removed by the runtime. If an externally edited file tries to retain a descriptor with the wrong basis hash, validation fails.
 
-## Core / DSR split
+The built-in `graph.components` and `graph.cycle_rank` methods use a weak undirected projection of typed relations. They are deliberately simple first descriptors, not a claim that these two numbers exhaust semantic topology.
+
+## Fusion semantics
+
+Every proposal is fail-closed against:
+
+- `identity`
+- `base_revision`
+- `base_hash`
+
+For an axis proposal, effective support is:
 
 ```text
-ISQL Core v0.4
-  identity / registry / codec / wire / recovery
-
-ISQL DSR v0.1
-  spectrum / relation / context / state / transition / projection
+source_weight * (1 - axis_uncertainty)
 ```
 
-The bridge in this release is intentionally lossless. It transports canonical DSR state as a versioned `STATE/R2` envelope; it does not pretend the current Core spectral dictionary is the complete DSR semantic space.
+Winner support is divided by total source weight. If the best variants tie, or support is below the configured threshold, DSR keeps the base axis and records a conflict. Accepted relations use weighted support over the full proposal set.
+
+The algorithm is `weighted-agreement/v0.2` and sorts proposals before aggregation, so input ordering cannot change a valid result.
+
+## Core numeric wire
+
+v0.2 encodes each UTF-8 byte of canonical JSON as exactly three decimal digits (`000`–`255`). Therefore a wire has the Core v0.4 shape:
+
+```text
+ISQL1:SEM:R2:DSR<digits>
+ISQL1:STATE:R2:DSR<digits>
+```
+
+This is a **compatibility bridge**, not a compression claim. Its purpose is to prove that full DSR SEM/STATE payloads can cross the current Core digits-only grammar without losing semantic structure. A later compact numeric codec can replace this profile without changing the DSR object model.
+
+## Schema compatibility
+
+v0.2 deliberately bumps the DSR state/event schemas. Non-genesis v0.1 history chains should remain with the v0.1 runtime unless explicitly migrated and re-hashed. v0.1 is preserved as a separate immutable release.
+
+## Files
+
+- `src/isql_dsr/model.py` — semantic value/state models
+- `src/isql_dsr/topology.py` — relation-basis hashing and topology computation
+- `src/isql_dsr/fusion.py` — proposal and fusion contracts
+- `src/isql_dsr/events.py` — fail-closed events
+- `src/isql_dsr/runtime.py` — state transition application/replay
+- `src/isql_dsr/bridge.py` — SEM/STATE numeric Core bridge
+- `src/isql_dsr/validation.py` — integrity and replay validation
+- `src/isql_dsr/diff.py` — semantic/topology state diff
+- `src/isql_dsr/cli.py` — command line application
+- `docs/` — theory anchors and implementation plan
+- `examples/v0.2/` — deterministic end-to-end fixtures
+- `tests/` — source/install test suite

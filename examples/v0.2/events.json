@@ -1,0 +1,160 @@
+[
+  {
+    "base_revision": 0,
+    "event_id": "evt-001-risk-axis",
+    "occurred_at": "2026-08-17T21:20:00+08:00",
+    "operation": "upsert_axis",
+    "payload": {
+      "axis": {
+        "domain": "ordinal",
+        "key": "risk",
+        "resolution": 1,
+        "uncertainty": 0.9,
+        "value": {
+          "kind": "point",
+          "value": "unknown"
+        }
+      }
+    },
+    "previous_hash": "6e15c9aaa438d9792175b5f6f9cb7299227f080d0603bb51a871f1932db2fde2",
+    "schema": "isql.dsr-event/v0.2"
+  },
+  {
+    "base_revision": 1,
+    "event_id": "evt-002-relation",
+    "occurred_at": "2026-08-17T21:20:01+08:00",
+    "operation": "upsert_relation",
+    "payload": {
+      "relation": {
+        "object": "deployment",
+        "predicate": "affects",
+        "subject": "risk"
+      }
+    },
+    "previous_hash": "e882f0b771f7015e81fbd0f122bee1e8adf886ab4cdd9c9e243948d111ddf6f1",
+    "schema": "isql.dsr-event/v0.2"
+  },
+  {
+    "base_revision": 2,
+    "event_id": "evt-003-topology",
+    "occurred_at": "2026-08-17T21:20:02+08:00",
+    "operation": "refresh_topology",
+    "payload": {
+      "methods": [
+        "graph.components",
+        "graph.cycle_rank"
+      ]
+    },
+    "previous_hash": "043b677a86745791b984695a183528adf85b5695b18a04152f15c1dff47252ca",
+    "schema": "isql.dsr-event/v0.2"
+  },
+  {
+    "base_revision": 3,
+    "event_id": "evt-004-fusion",
+    "occurred_at": "2026-08-17T21:20:04+08:00",
+    "operation": "fuse_proposals",
+    "payload": {
+      "axis_threshold": 0.5,
+      "proposals": [
+        {
+          "axes": [
+            {
+              "domain": "ordinal",
+              "key": "risk",
+              "resolution": 2,
+              "uncertainty": 0.2,
+              "value": {
+                "kind": "point",
+                "value": "medium"
+              }
+            }
+          ],
+          "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+          "base_revision": 3,
+          "identity": "isql:dsr:v02:demo",
+          "produced_at": "2026-08-17T21:20:03+08:00",
+          "proposal_id": "proposal-model-c",
+          "relations": [],
+          "schema": "isql.dsr-proposal/v0.2",
+          "source_id": "model-c",
+          "source_weight": 1.0
+        },
+        {
+          "axes": [
+            {
+              "domain": "ordinal",
+              "key": "risk",
+              "resolution": 3,
+              "uncertainty": 0.1,
+              "value": {
+                "kind": "point",
+                "value": "high"
+              }
+            }
+          ],
+          "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+          "base_revision": 3,
+          "identity": "isql:dsr:v02:demo",
+          "produced_at": "2026-08-17T21:20:03+08:00",
+          "proposal_id": "proposal-model-a",
+          "relations": [
+            {
+              "object": "risk",
+              "predicate": "reduces",
+              "subject": "mitigation"
+            }
+          ],
+          "schema": "isql.dsr-proposal/v0.2",
+          "source_id": "model-a",
+          "source_weight": 1.0
+        },
+        {
+          "axes": [
+            {
+              "domain": "ordinal",
+              "key": "risk",
+              "resolution": 2,
+              "uncertainty": 0.15,
+              "value": {
+                "kind": "point",
+                "value": "high"
+              }
+            }
+          ],
+          "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+          "base_revision": 3,
+          "identity": "isql:dsr:v02:demo",
+          "produced_at": "2026-08-17T21:20:03+08:00",
+          "proposal_id": "proposal-model-b",
+          "relations": [
+            {
+              "object": "risk",
+              "predicate": "reduces",
+              "subject": "mitigation"
+            }
+          ],
+          "schema": "isql.dsr-proposal/v0.2",
+          "source_id": "model-b",
+          "source_weight": 1.0
+        }
+      ],
+      "relation_threshold": 0.5
+    },
+    "previous_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+    "schema": "isql.dsr-event/v0.2"
+  },
+  {
+    "base_revision": 4,
+    "event_id": "evt-005-topology-refresh",
+    "occurred_at": "2026-08-17T21:20:05+08:00",
+    "operation": "refresh_topology",
+    "payload": {
+      "methods": [
+        "graph.components",
+        "graph.cycle_rank"
+      ]
+    },
+    "previous_hash": "8544693bce64b280994e1a18bb9f7cc1f5c7964769d02ca0df57dc86e2343abe",
+    "schema": "isql.dsr-event/v0.2"
+  }
+]

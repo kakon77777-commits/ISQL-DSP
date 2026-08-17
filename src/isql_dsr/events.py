@@ -16,6 +16,10 @@ _ALLOWED_OPERATIONS = {
     "remove_relation",
     "upsert_projection",
     "remove_projection",
+    "refresh_topology",
+    "upsert_topology_descriptor",
+    "remove_topology_descriptor",
+    "fuse_proposals",
 }
 _HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
@@ -29,7 +33,7 @@ class TransitionEvent:
     previous_hash: str
     occurred_at: str | None = None
 
-    SCHEMA = "isql.dsr-event/v0.1"
+    SCHEMA = "isql.dsr-event/v0.2"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "event_id", _text(self.event_id, "EVENT_ID_REQUIRED"))

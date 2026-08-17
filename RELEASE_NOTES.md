@@ -1,35 +1,30 @@
-# ISQL Dynamic Spectrum Runtime v0.1.0 — Release Notes
+# ISQL-DSR Runtime v0.2.0 Release Notes
 
-## First parallel internal runtime
+Date: 2026-08-17
 
-This release intentionally does **not** modify or replace ISQL Core Runtime v0.4.
+## New
 
-### Implemented
+- Added typed `TopologyDescriptor` objects.
+- Added canonical relation-basis hashing.
+- Added `graph.components` and `graph.cycle_rank` topology methods.
+- Relation mutations now invalidate prior topology descriptors.
+- Validation now detects stale topology descriptors without requiring history replay.
+- Added fail-closed `SemanticProposal` objects for multi-model / multi-agent semantic input.
+- Added deterministic `weighted-agreement/v0.2` fusion.
+- Added explicit axis conflict records for tied or insufficient support.
+- Fusion is now a first-class replayable transition event.
+- Added semantic-only `SEM/R2` snapshots.
+- Upgraded `STATE/R2` bridge to digits-only Core-compatible wire.
+- Added `SEM + STATE` bridge bundle.
+- Added CLI `topology`, `fuse`, and `bridge --domain` commands.
 
-- Canonical dynamic semantic state with stable identity.
-- Finite-active spectrum axes.
-- Point, interval, and candidate-set spectral values.
-- Per-axis uncertainty and resolution.
-- Typed semantic relations.
-- Multiple semantic projections.
-- Context as state.
-- Fail-closed transition events with revision and previous-hash guards.
-- Deterministic replay with history/provenance records.
-- Semantic state diff.
-- Replay-based history validation.
-- Canonical UTF-8 JSON and SHA-256 state hash.
-- Lossless ISQL Core `STATE/R2` transport envelope.
-- CLI: `new`, `hash`, `validate`, `apply`, `replay`, `diff`, `bridge`.
-- Self-contained examples and theory anchor documents.
+## Important interpretation
 
-### Deliberately deferred
+The decimal wire is a compatibility transport, not a compression result. Meaning remains in the DSR semantic object; a Core code is a transport/reference representation.
 
-- Learned/AI semantic analyzers.
-- Automatic axis induction or ontology evolution.
-- Probabilistic distributions beyond point/interval/candidate values.
-- Topological descriptors beyond the current relation structure.
-- CEO operator implementation and convergence certificates.
-- Direct compilation into Core v0.4 spectral integer registry.
-- EXEC semantics.
+## Breaking schema change
 
-The next logical version is v0.2: typed topology descriptors + uncertainty-aware merge/fusion + a formal Core SEM/STATE packet bridge.
+- state: `isql.dsr-state/v0.2`
+- event: `isql.dsr-event/v0.2`
+
+Existing v0.1 history chains are not silently re-hashed. Keep them with the v0.1 runtime until an explicit migration profile is introduced.

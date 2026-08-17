@@ -1,1 +1,0 @@
-ISQL Core v0.4 STATE/R2: compatible transport target

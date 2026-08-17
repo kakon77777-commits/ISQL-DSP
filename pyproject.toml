@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "isql-dsr-runtime"
-version = "0.1.0"
-description = "ISQL Dynamic Spectrum Runtime: finite-active spectra, typed relations, replayable semantic state, and Core transport bridge."
+version = "0.2.0"
+description = "ISQL Dynamic Spectrum Runtime: topology-aware finite-active spectra, uncertainty-aware fusion, replayable semantic state, and Core SEM/STATE numeric wire bridge."
 requires-python = ">=3.11"
 authors = [{name = "Neo.K / EVEMISSLAB"}]
 

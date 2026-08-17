@@ -7,6 +7,7 @@ from .canonical import state_hash
 from .events import TransitionEvent
 from .model import SemanticState
 from .runtime import apply_event
+from .topology import topology_basis_hash
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,7 +19,7 @@ class ValidationReport:
 
     def to_dict(self) -> dict[str, object]:
         return {
-            "schema": "isql.dsr-validation/v0.1",
+            "schema": "isql.dsr-validation/v0.2",
             "valid": self.valid,
             "errors": list(self.errors),
             "checked_history_records": self.checked_history_records,
@@ -29,6 +30,11 @@ class ValidationReport:
 def validate_state(state: SemanticState, *, genesis: SemanticState | None = None) -> ValidationReport:
     errors: list[str] = []
     checked = 0
+
+    current_basis = topology_basis_hash(state)
+    for descriptor in state.topology:
+        if descriptor.basis_hash != current_basis:
+            errors.append(f"TOPOLOGY_BASIS_HASH_MISMATCH:{descriptor.descriptor_id}")
 
     if genesis is not None:
         if genesis.identity != state.identity:

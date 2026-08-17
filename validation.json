@@ -1,36 +1,31 @@
 {
-  "canonical_state_hash": "c2ae21b16c1d9b1ee7854d6aed389e9aef0ab606c375cddc2c2589b7bea61a4e",
-  "compileall_passed": true,
-  "core_v0_4_state_r2_compatibility": true,
-  "external_runtime_dependencies": [],
-  "installed_cli_history_validation": {
-    "checked_history_records": 6,
-    "errors": [],
-    "schema": "isql.dsr-validation/v0.1",
-    "state_hash": "c2ae21b16c1d9b1ee7854d6aed389e9aef0ab606c375cddc2c2589b7bea61a4e",
-    "valid": true
-  },
-  "installed_wheel_tests": {
-    "count": 18,
-    "passed": true
-  },
-  "python_runtime": "3.13.5",
-  "schema": "isql.dsr-release-validation/v0.1",
-  "source_cli_history_validation": {
-    "checked_history_records": 6,
-    "errors": [],
-    "schema": "isql.dsr-validation/v0.1",
-    "state_hash": "c2ae21b16c1d9b1ee7854d6aed389e9aef0ab606c375cddc2c2589b7bea61a4e",
-    "valid": true
-  },
+  "schema": "isql.dsr-release-validation/v0.2",
+  "package_version": "0.2.0",
+  "state_schema": "isql.dsr-state/v0.2",
+  "event_schema": "isql.dsr-event/v0.2",
   "source_tests": {
-    "count": 18,
-    "passed": true
+    "passed": 33,
+    "failed": 0,
+    "evidence": "validation/source_tests.txt"
   },
-  "version": "0.1.0",
-  "wheel": {
-    "name": "isql_dsr_runtime-0.1.0-py3-none-any.whl",
-    "sha256": "2b26ac460ac6fc61b4dc44540d33fc56ea1d7b188f4e7d5326076848b8867b7e",
-    "size_bytes": 13277
-  }
+  "installed_tests": {
+    "passed": 33,
+    "failed": 0,
+    "evidence": "validation/installed_tests.txt"
+  },
+  "installed_history_validation": {
+    "checked_history_records": 5,
+    "errors": [],
+    "schema": "isql.dsr-validation/v0.2",
+    "state_hash": "f2f0dad5d5280e2c5f469e8ebe82c0cab039a10147ea7954e665e80f4dcd64f1",
+    "valid": true
+  },
+  "core_v0_4_parser_compatibility": "PASS",
+  "core_parser_evidence": "validation/core_v04_parser.txt",
+  "wheel": "dist/isql_dsr_runtime-0.2.0-py3-none-any.whl",
+  "wheel_sha256": "7c4f019a3a1365d73e271729b825c72f79b82fcafb7344ed36baf670a933a0e8",
+  "canonical_example_state": "examples/v0.2/final_state.json",
+  "canonical_example_state_hash": "f2f0dad5d5280e2c5f469e8ebe82c0cab039a10147ea7954e665e80f4dcd64f1",
+  "unicode_escape_roundtrip_used": false,
+  "status": "PASS"
 }

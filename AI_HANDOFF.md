@@ -1,50 +1,44 @@
-# ISQL DSR v0.1 — AI Handoff
+# AI_HANDOFF — ISQL-DSR Runtime v0.2.0
 
-## Read first
+This is the **internal dynamic-semantic** ISQL line. Do not collapse it back into the public ISQL Core registry representation.
 
-This package is the **parallel internal dynamic-spectrum runtime**. Do not merge its semantic model back into the ISQL Core v0.4 integer registry as if registry IDs were meaning.
+## Non-negotiable invariants
 
-Read in this order:
+1. `identity != representation != projection != reconstruction`.
+2. Registry IDs / Core wire payloads are references or transport encodings, never identical to meaning.
+3. Every state-changing event is fail-closed on `base_revision` and `previous_hash`.
+4. Topology descriptors must bind to the exact current relation-basis hash.
+5. Relation changes invalidate topology descriptors.
+6. AI/model semantic output is a proposal, not canonical truth.
+7. Fusion must remain deterministic under proposal input reordering.
+8. Full STATE bridge must be lossless.
+9. SEM bridge intentionally excludes context/history and transports semantic structure only.
+10. Do not claim the decimal bridge is compression.
 
-1. `docs/ISQL_Canonical_Anchor_v1.0_2026-08-17.md`
-2. `docs/ISQL_DSR_Implementability_Revision_v0.1_2026-08-17.md`
-3. `README.md`
-4. `src/isql_dsr/model.py`
-5. `src/isql_dsr/runtime.py`
-6. tests
+## v0.2 completed
 
-## Invariants that must survive later versions
-
-- Identity is separate from mutable representation.
-- Runtime state is finite-active even if the coordinate universe is unbounded over time.
-- Registry/reference IDs are not semantic meaning.
-- Context, relations, projections, and history are first-class state.
-- Transition application is fail-closed on revision/hash mismatch.
-- Canonical JSON round-trip must remain exact for the canonical object.
-- AI/model analysis is a proposal; deterministic runtime validation owns canonical state.
-- Any bridge to Core must declare what information it preserves or loses.
-
-## v0.1 implemented
-
-- point / interval / candidate-set spectral values
-- finite-active axes with uncertainty + resolution
+- finite-active spectrum values
 - typed relations
-- projections
-- context
-- transition events
-- replay
-- semantic diff
-- history validation
-- canonical SHA-256 state hash
-- lossless Core STATE/R2 envelope
-- CLI
+- topology descriptors + basis integrity
+- two built-in topology descriptors
+- replayable context/axis/relation/projection/topology transitions
+- uncertainty-aware deterministic proposal fusion
+- explicit conflicts
+- state diff including topology changes
+- replay validation
+- Core-parsable SEM/R2 and STATE/R2 digits-only wires
+- CLI and end-to-end examples
 
-## Recommended v0.2 frontier
+## Natural next frontier
 
-1. typed topology descriptors derived from relation structures
-2. uncertainty-aware merge/fusion across multiple proposed semantic states
-3. formal Core SEM/STATE packet bridge rather than opaque payload envelope
-4. stronger event schemas and transition effect contracts
-5. optional spectral-analysis profiles (Fourier/graph/ontology) behind explicit interfaces
+v0.3 should deepen **Topology and Flow**, not add decorative encodings. Candidate work:
 
-Do not implement CEO fixed-point claims as unconditional behavior. A fixed-point or convergence certificate must name its assumptions and convergence criterion.
+- directed / typed graph descriptor profiles
+- persistent-homology adapter with explicit construction parameters
+- topology stability tests under bounded relation perturbations
+- negative/retract relation proposals in fusion
+- projection-level provenance and validator contracts
+- semantic merge across divergent state branches
+- compact numeric bridge replacing fixed-width decimal bytes while preserving exact reconstruction
+
+Read `docs/ISQL_Canonical_Anchor_v1.0_2026-08-17.md` before making architecture-level changes.

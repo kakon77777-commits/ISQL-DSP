@@ -196,6 +196,63 @@ class TypedRelation:
 
 
 @dataclass(frozen=True, slots=True)
+class TopologyDescriptor:
+    descriptor_id: str
+    method: str
+    basis_hash: str
+    value: JSONValue
+    confidence: float = 1.0
+    parameters: dict[str, JSONValue] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "descriptor_id", _text(self.descriptor_id, "TOPOLOGY_DESCRIPTOR_ID_REQUIRED"))
+        object.__setattr__(self, "method", _text(self.method, "TOPOLOGY_METHOD_REQUIRED"))
+        if not isinstance(self.basis_hash, str) or len(self.basis_hash) != 64 or any(c not in "0123456789abcdef" for c in self.basis_hash):
+            raise DSRValidationError("TOPOLOGY_BASIS_HASH_INVALID")
+        object.__setattr__(self, "value", _json_value(self.value, "TOPOLOGY_VALUE_NOT_JSON"))
+        if isinstance(self.confidence, bool):
+            raise DSRValidationError("TOPOLOGY_CONFIDENCE_OUT_OF_RANGE")
+        try:
+            confidence = float(self.confidence)
+        except (TypeError, ValueError) as exc:
+            raise DSRValidationError("TOPOLOGY_CONFIDENCE_OUT_OF_RANGE") from exc
+        if not math.isfinite(confidence) or not (0.0 <= confidence <= 1.0):
+            raise DSRValidationError("TOPOLOGY_CONFIDENCE_OUT_OF_RANGE")
+        object.__setattr__(self, "confidence", confidence)
+        if not isinstance(self.parameters, Mapping):
+            raise DSRValidationError("TOPOLOGY_PARAMETERS_MUST_BE_OBJECT")
+        parameters = _json_value(dict(self.parameters), "TOPOLOGY_PARAMETERS_NOT_JSON")
+        assert isinstance(parameters, dict)
+        object.__setattr__(self, "parameters", parameters)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "descriptor_id": self.descriptor_id,
+            "method": self.method,
+            "basis_hash": self.basis_hash,
+            "value": self.value,
+            "confidence": self.confidence,
+            "parameters": self.parameters,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "TopologyDescriptor":
+        if not isinstance(value, Mapping):
+            raise DSRValidationError("TOPOLOGY_DESCRIPTOR_MUST_BE_OBJECT")
+        parameters = value.get("parameters", {})
+        if not isinstance(parameters, Mapping):
+            raise DSRValidationError("TOPOLOGY_PARAMETERS_MUST_BE_OBJECT")
+        return cls(
+            descriptor_id=value.get("descriptor_id"),
+            method=value.get("method"),
+            basis_hash=value.get("basis_hash"),
+            value=value.get("value"),
+            confidence=value.get("confidence", 1.0),
+            parameters=dict(parameters),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class SemanticProjection:
     projection_id: str
     media_type: str
@@ -227,10 +284,11 @@ class SemanticState:
     context: dict[str, JSONValue] = field(default_factory=dict)
     axes: tuple[SpectrumAxis, ...] = ()
     relations: tuple[TypedRelation, ...] = ()
+    topology: tuple[TopologyDescriptor, ...] = ()
     projections: tuple[SemanticProjection, ...] = ()
     history: tuple[dict[str, JSONValue], ...] = ()
 
-    SCHEMA = "isql.dsr-state/v0.1"
+    SCHEMA = "isql.dsr-state/v0.2"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "identity", _text(self.identity, "STATE_IDENTITY_REQUIRED"))
@@ -255,6 +313,13 @@ class SemanticState:
         if len(set(rel_keys)) != len(rel_keys):
             raise DSRValidationError("DUPLICATE_RELATION")
         object.__setattr__(self, "relations", tuple(sorted(self.relations, key=lambda x: x.key)))
+
+        if not isinstance(self.topology, tuple) or not all(isinstance(x, TopologyDescriptor) for x in self.topology):
+            raise DSRValidationError("STATE_TOPOLOGY_MUST_BE_DESCRIPTOR_TUPLE")
+        topology_ids = [x.descriptor_id for x in self.topology]
+        if len(set(topology_ids)) != len(topology_ids):
+            raise DSRValidationError("DUPLICATE_TOPOLOGY_DESCRIPTOR_ID")
+        object.__setattr__(self, "topology", tuple(sorted(self.topology, key=lambda x: x.descriptor_id)))
 
         if not isinstance(self.projections, tuple) or not all(isinstance(x, SemanticProjection) for x in self.projections):
             raise DSRValidationError("STATE_PROJECTIONS_MUST_BE_PROJECTION_TUPLE")
@@ -282,6 +347,7 @@ class SemanticState:
             "context": self.context,
             "axes": [x.to_dict() for x in self.axes],
             "relations": [x.to_dict() for x in self.relations],
+            "topology": [x.to_dict() for x in self.topology],
             "projections": [x.to_dict() for x in self.projections],
             "history": list(self.history),
         }
@@ -294,9 +360,10 @@ class SemanticState:
             raise DSRValidationError("INVALID_STATE_SCHEMA")
         axes = value.get("axes", [])
         relations = value.get("relations", [])
+        topology = value.get("topology", [])
         projections = value.get("projections", [])
         history = value.get("history", [])
-        if not all(isinstance(x, list) for x in (axes, relations, projections, history)):
+        if not all(isinstance(x, list) for x in (axes, relations, topology, projections, history)):
             raise DSRValidationError("STATE_COLLECTIONS_MUST_BE_LISTS")
         context = value.get("context", {})
         if not isinstance(context, Mapping):
@@ -307,6 +374,7 @@ class SemanticState:
             context=dict(context),
             axes=tuple(SpectrumAxis.from_dict(x) for x in axes),
             relations=tuple(TypedRelation.from_dict(x) for x in relations),
+            topology=tuple(TopologyDescriptor.from_dict(x) for x in topology),
             projections=tuple(SemanticProjection.from_dict(x) for x in projections),
             history=tuple(dict(x) for x in history),
         )

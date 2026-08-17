@@ -1,0 +1,83 @@
+[
+  {
+    "axes": [
+      {
+        "domain": "ordinal",
+        "key": "risk",
+        "resolution": 3,
+        "uncertainty": 0.1,
+        "value": {
+          "kind": "point",
+          "value": "high"
+        }
+      }
+    ],
+    "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+    "base_revision": 3,
+    "identity": "isql:dsr:v02:demo",
+    "produced_at": "2026-08-17T21:20:03+08:00",
+    "proposal_id": "proposal-model-a",
+    "relations": [
+      {
+        "object": "risk",
+        "predicate": "reduces",
+        "subject": "mitigation"
+      }
+    ],
+    "schema": "isql.dsr-proposal/v0.2",
+    "source_id": "model-a",
+    "source_weight": 1.0
+  },
+  {
+    "axes": [
+      {
+        "domain": "ordinal",
+        "key": "risk",
+        "resolution": 2,
+        "uncertainty": 0.15,
+        "value": {
+          "kind": "point",
+          "value": "high"
+        }
+      }
+    ],
+    "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+    "base_revision": 3,
+    "identity": "isql:dsr:v02:demo",
+    "produced_at": "2026-08-17T21:20:03+08:00",
+    "proposal_id": "proposal-model-b",
+    "relations": [
+      {
+        "object": "risk",
+        "predicate": "reduces",
+        "subject": "mitigation"
+      }
+    ],
+    "schema": "isql.dsr-proposal/v0.2",
+    "source_id": "model-b",
+    "source_weight": 1.0
+  },
+  {
+    "axes": [
+      {
+        "domain": "ordinal",
+        "key": "risk",
+        "resolution": 2,
+        "uncertainty": 0.2,
+        "value": {
+          "kind": "point",
+          "value": "medium"
+        }
+      }
+    ],
+    "base_hash": "23a9b6296666f0d497c9a4369db6e3295ec6b48ea0dc3727996b2eba244d42ca",
+    "base_revision": 3,
+    "identity": "isql:dsr:v02:demo",
+    "produced_at": "2026-08-17T21:20:03+08:00",
+    "proposal_id": "proposal-model-c",
+    "relations": [],
+    "schema": "isql.dsr-proposal/v0.2",
+    "source_id": "model-c",
+    "source_weight": 1.0
+  }
+]

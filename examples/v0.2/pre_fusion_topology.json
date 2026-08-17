@@ -1,0 +1,28 @@
+{
+  "basis_hash": "e1dbad208328d39ce9421401b6571f3facfa2898d4dbfeb0b895061e23fda4be",
+  "descriptors": [
+    {
+      "basis_hash": "e1dbad208328d39ce9421401b6571f3facfa2898d4dbfeb0b895061e23fda4be",
+      "confidence": 1.0,
+      "descriptor_id": "graph.components",
+      "method": "graph.components",
+      "parameters": {
+        "graph_mode": "weak-undirected-projection"
+      },
+      "value": 1
+    },
+    {
+      "basis_hash": "e1dbad208328d39ce9421401b6571f3facfa2898d4dbfeb0b895061e23fda4be",
+      "confidence": 1.0,
+      "descriptor_id": "graph.cycle_rank",
+      "method": "graph.cycle_rank",
+      "parameters": {
+        "graph_mode": "weak-undirected-projection"
+      },
+      "value": 0
+    }
+  ],
+  "identity": "isql:dsr:v02:demo",
+  "revision": 3,
+  "schema": "isql.dsr-topology-result/v0.2"
+}
