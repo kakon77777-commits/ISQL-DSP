@@ -21,12 +21,11 @@ class BridgeV02Tests(unittest.TestCase):
     def _state(self):
         return SemanticState(
             identity="demo:bridge-v02",
-            revision=1,
+            revision=0,
             context={"task": "deploy"},
             axes=(SpectrumAxis("risk", "ordinal", PointValue("high"), uncertainty=0.2),),
             relations=(TypedRelation("risk", "affects", "deployment"),),
             projections=(),
-            history=({"note": "fixture"},),
         )
 
     def test_sem_envelope_excludes_context_and_history_but_preserves_semantics(self):

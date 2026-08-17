@@ -15,7 +15,6 @@ class CLIV02Tests(unittest.TestCase):
             [sys.executable, "-m", "isql_dsr", *args],
             text=True,
             capture_output=True,
-            env={**__import__("os").environ, "PYTHONPATH": "src"},
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         return json.loads(proc.stdout)
@@ -26,7 +25,7 @@ class CLIV02Tests(unittest.TestCase):
             state = SemanticState(identity="demo:cli-topology")
             p.write_text(json.dumps(state.to_dict()), encoding="utf-8")
             out = self._run("topology", "--state", str(p), "--methods", "graph.components,graph.cycle_rank")
-            self.assertEqual(out["schema"], "isql.dsr-topology-result/v0.2")
+            self.assertEqual(out["schema"], "isql.dsr-topology-result/v0.3")
             self.assertEqual([x["descriptor_id"] for x in out["descriptors"]], ["graph.components", "graph.cycle_rank"])
 
     def test_fuse_command_applies_replayable_fusion_event(self):
@@ -59,7 +58,7 @@ class CLIV02Tests(unittest.TestCase):
                 "--proposals", str(proposals_p),
                 "--event-id", "evt-cli-fuse",
             )
-            self.assertEqual(out["schema"], "isql.dsr-fuse-result/v0.2")
+            self.assertEqual(out["schema"], "isql.dsr-fuse-result/v0.3")
             self.assertEqual(out["state"]["revision"], 1)
             self.assertEqual(out["state"]["axes"][0]["value"]["value"], "high")
             self.assertEqual(out["fusion"]["proposal_ids"], ["p1", "p2"])

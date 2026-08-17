@@ -10,10 +10,9 @@ class BridgeTests(unittest.TestCase):
     def test_core_state_envelope_preserves_full_canonical_state(self):
         state = SemanticState(
             identity="isql:demo:alpha",
-            revision=2,
+            revision=0,
             context={"language": "zh-Hant"},
             axes=(SpectrumAxis("priority", "ordinal", PointValue(3)),),
-            history=({"note": "historical fixture"}, {"note": "second"}),
         )
         envelope = to_core_state_envelope(state)
         self.assertEqual(envelope.domain, "STATE")

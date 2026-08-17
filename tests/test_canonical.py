@@ -20,10 +20,10 @@ class CanonicalTests(unittest.TestCase):
         self.assertEqual(canonical_json(left), canonical_json(right))
         self.assertEqual(state_hash(left), state_hash(right))
 
-    def test_canonical_bytes_are_utf8_and_hash_is_sha256_hex(self):
+    def test_canonical_bytes_are_native_and_hash_is_sha256_hex(self):
         state = SemanticState(identity="isql:測試:alpha")
         payload = canonical_bytes(state)
-        self.assertEqual(payload.decode("utf-8"), canonical_json(state))
+        self.assertNotEqual(payload, canonical_json(state).encode("utf-8"))
         self.assertRegex(state_hash(state), r"^[0-9a-f]{64}$")
 
 

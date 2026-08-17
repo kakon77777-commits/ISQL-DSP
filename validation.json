@@ -1,31 +1,37 @@
 {
-  "schema": "isql.dsr-release-validation/v0.2",
-  "package_version": "0.2.0",
-  "state_schema": "isql.dsr-state/v0.2",
-  "event_schema": "isql.dsr-event/v0.2",
+  "canonical_authority": "native .isqln bytes",
+  "core_v0.4_parser": {
+    "passed": true,
+    "sem_profile": "SEM/R3/DSRN",
+    "state_profile": "STATE/R3/DSRN"
+  },
+  "example": {
+    "forbidden_schema_labels_absent": true,
+    "history_replay_valid": true,
+    "identity": "isql:dsr:v03:demo",
+    "native_bytes": 1672,
+    "revision": 6,
+    "round_trip_exact": true,
+    "schema": "isql.dsr-native-example-summary/v0.3",
+    "state_hash": "9242145a785207b0bd51ce27da59dbbb5b10142ace1ddc9a5e3a99594af666f9"
+  },
+  "installed_wheel_tests": {
+    "count": 51,
+    "passed": true,
+    "without_PYTHONPATH": true
+  },
+  "native_format_version": 3,
+  "schema": "isql.dsr-release-validation/v0.3",
   "source_tests": {
-    "passed": 33,
-    "failed": 0,
-    "evidence": "validation/source_tests.txt"
+    "count": 51,
+    "passed": true
   },
-  "installed_tests": {
-    "passed": 33,
-    "failed": 0,
-    "evidence": "validation/installed_tests.txt"
+  "status": "PASS",
+  "version": "0.3.0",
+  "wheel_build": {
+    "passed": true
   },
-  "installed_history_validation": {
-    "checked_history_records": 5,
-    "errors": [],
-    "schema": "isql.dsr-validation/v0.2",
-    "state_hash": "f2f0dad5d5280e2c5f469e8ebe82c0cab039a10147ea7954e665e80f4dcd64f1",
-    "valid": true
-  },
-  "core_v0_4_parser_compatibility": "PASS",
-  "core_parser_evidence": "validation/core_v04_parser.txt",
-  "wheel": "dist/isql_dsr_runtime-0.2.0-py3-none-any.whl",
-  "wheel_sha256": "7c4f019a3a1365d73e271729b825c72f79b82fcafb7344ed36baf670a933a0e8",
-  "canonical_example_state": "examples/v0.2/final_state.json",
-  "canonical_example_state_hash": "f2f0dad5d5280e2c5f469e8ebe82c0cab039a10147ea7954e665e80f4dcd64f1",
-  "unicode_escape_roundtrip_used": false,
-  "status": "PASS"
+  "wheel_install": {
+    "passed": true
+  }
 }

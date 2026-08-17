@@ -33,7 +33,8 @@ class TransitionEvent:
     previous_hash: str
     occurred_at: str | None = None
 
-    SCHEMA = "isql.dsr-event/v0.2"
+    SCHEMA = "isql.dsr-event/v0.3"
+    LEGACY_SCHEMAS = {"isql.dsr-event/v0.2"}
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "event_id", _text(self.event_id, "EVENT_ID_REQUIRED"))
@@ -89,7 +90,7 @@ class TransitionEvent:
     def from_dict(cls, value: Mapping[str, Any]) -> "TransitionEvent":
         if not isinstance(value, Mapping):
             raise DSRValidationError("EVENT_MUST_BE_OBJECT")
-        if value.get("schema") not in (None, cls.SCHEMA):
+        if value.get("schema") not in (None, cls.SCHEMA, *cls.LEGACY_SCHEMAS):
             raise DSRValidationError("INVALID_EVENT_SCHEMA")
         payload = value.get("payload", {})
         if not isinstance(payload, Mapping):

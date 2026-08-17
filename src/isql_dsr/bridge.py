@@ -316,3 +316,181 @@ def decode_core_envelope(envelope: CoreDomainEnvelope) -> SemanticState | Semant
     if envelope.domain == "SEM":
         return envelope.to_semantic_snapshot()
     raise DSRValidationError("CORE_ENVELOPE_DOMAIN_INVALID")
+
+# ---- v0.3 AI-native bridge -------------------------------------------------
+
+
+def encode_decimal_bytes(value: bytes) -> str:
+    if not isinstance(value, (bytes, bytearray, memoryview)) or not value:
+        raise DSRValidationError("NATIVE_CORE_PAYLOAD_BYTES_REQUIRED")
+    return "".join(f"{byte:03d}" for byte in bytes(value))
+
+
+def decode_decimal_bytes(value: str) -> bytes:
+    if not isinstance(value, str) or not value or not value.isascii() or not value.isdigit() or len(value) % 3:
+        raise DSRValidationError("NATIVE_CORE_DECIMAL_PAYLOAD_INVALID")
+    raw = bytearray()
+    for idx in range(0, len(value), 3):
+        byte = int(value[idx:idx+3])
+        if byte > 255:
+            raise DSRValidationError("NATIVE_CORE_DECIMAL_BYTE_OUT_OF_RANGE")
+        raw.append(byte)
+    return bytes(raw)
+
+
+@dataclass(frozen=True, slots=True)
+class NativeCoreDomainEnvelope:
+    domain: str
+    identity: str
+    revision: int
+    state_hash: str
+    content_hash: str
+    payload_digits: str
+    resolution: str = "R3"
+    control: str = "DSRN"
+    protocol_version: int = 1
+    schema: str = "isql.dsr-native-core-envelope/v0.3"
+
+    def __post_init__(self) -> None:
+        from .native import decode_state, encode_state
+        if self.domain not in {"SEM", "STATE"}:
+            raise DSRValidationError("NATIVE_CORE_DOMAIN_INVALID")
+        if self.resolution != "R3":
+            raise DSRValidationError("NATIVE_CORE_RESOLUTION_INVALID")
+        if self.control != "DSRN":
+            raise DSRValidationError("NATIVE_CORE_CONTROL_INVALID")
+        if self.protocol_version != 1:
+            raise DSRValidationError("NATIVE_CORE_PROTOCOL_VERSION_INVALID")
+        if self.schema != "isql.dsr-native-core-envelope/v0.3":
+            raise DSRValidationError("NATIVE_CORE_SCHEMA_INVALID")
+        if not isinstance(self.identity, str) or not self.identity.strip():
+            raise DSRValidationError("NATIVE_CORE_IDENTITY_REQUIRED")
+        if not isinstance(self.revision, int) or isinstance(self.revision, bool) or self.revision < 0:
+            raise DSRValidationError("NATIVE_CORE_REVISION_INVALID")
+        for value, error in (
+            (self.state_hash, "NATIVE_CORE_STATE_HASH_INVALID"),
+            (self.content_hash, "NATIVE_CORE_CONTENT_HASH_INVALID"),
+        ):
+            if not isinstance(value, str) or not _HASH_RE.fullmatch(value):
+                raise DSRValidationError(error)
+        payload = decode_decimal_bytes(self.payload_digits)
+        if hashlib.sha256(payload).hexdigest() != self.content_hash:
+            raise DSRValidationError("NATIVE_CORE_CONTENT_HASH_MISMATCH")
+        decoded = decode_state(payload)
+        if decoded.identity != self.identity or decoded.revision != self.revision:
+            raise DSRValidationError("NATIVE_CORE_METADATA_MISMATCH")
+        if encode_state(decoded) != payload:
+            raise DSRValidationError("NATIVE_CORE_PAYLOAD_NONCANONICAL")
+        if self.domain == "STATE" and state_hash(decoded) != self.state_hash:
+            raise DSRValidationError("NATIVE_CORE_STATE_HASH_MISMATCH")
+        if not _WIRE_RE.fullmatch(self.wire):
+            raise DSRValidationError("NATIVE_CORE_WIRE_INVALID")
+
+    @property
+    def wire(self) -> str:
+        return f"ISQL{self.protocol_version}:{self.domain}:{self.resolution}:{self.control}{self.payload_digits}"
+
+    def to_state(self) -> SemanticState:
+        from .native import decode_state
+        return decode_state(decode_decimal_bytes(self.payload_digits))
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": self.schema,
+            "protocol_version": self.protocol_version,
+            "domain": self.domain,
+            "resolution": self.resolution,
+            "control": self.control,
+            "identity": self.identity,
+            "revision": self.revision,
+            "state_hash": self.state_hash,
+            "content_hash": self.content_hash,
+            "payload_digits": self.payload_digits,
+            "wire": self.wire,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "NativeCoreDomainEnvelope":
+        if not isinstance(value, Mapping):
+            raise DSRValidationError("NATIVE_CORE_ENVELOPE_MUST_BE_OBJECT")
+        return cls(
+            domain=value.get("domain"),
+            identity=value.get("identity"),
+            revision=value.get("revision"),
+            state_hash=value.get("state_hash"),
+            content_hash=value.get("content_hash"),
+            payload_digits=value.get("payload_digits"),
+            resolution=value.get("resolution", "R3"),
+            control=value.get("control", "DSRN"),
+            protocol_version=value.get("protocol_version", 1),
+            schema=value.get("schema", "isql.dsr-native-core-envelope/v0.3"),
+        )
+
+
+@dataclass(frozen=True, slots=True)
+class NativeCoreEnvelopeBundle:
+    sem: NativeCoreDomainEnvelope
+    state: NativeCoreDomainEnvelope
+
+    def __post_init__(self) -> None:
+        if self.sem.domain != "SEM" or self.state.domain != "STATE":
+            raise DSRValidationError("NATIVE_CORE_BUNDLE_DOMAIN_MISMATCH")
+        if self.sem.identity != self.state.identity or self.sem.revision != self.state.revision:
+            raise DSRValidationError("NATIVE_CORE_BUNDLE_METADATA_MISMATCH")
+        if self.sem.state_hash != self.state.state_hash:
+            raise DSRValidationError("NATIVE_CORE_BUNDLE_STATE_HASH_MISMATCH")
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": "isql.dsr-native-core-bundle/v0.3",
+            "sem": self.sem.to_dict(),
+            "state": self.state.to_dict(),
+        }
+
+
+def _native_semantic_state(state: SemanticState) -> SemanticState:
+    return SemanticState(
+        identity=state.identity,
+        revision=state.revision,
+        context={},
+        axes=state.axes,
+        relations=state.relations,
+        topology=state.topology,
+        projections=state.projections,
+        history=(),
+    )
+
+
+def to_native_core_state_envelope(state: SemanticState) -> NativeCoreDomainEnvelope:
+    from .native import encode_state
+    payload = encode_state(state)
+    digest = state_hash(state)
+    return NativeCoreDomainEnvelope(
+        domain="STATE",
+        identity=state.identity,
+        revision=state.revision,
+        state_hash=digest,
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+    )
+
+
+def to_native_core_sem_envelope(state: SemanticState) -> NativeCoreDomainEnvelope:
+    from .native import encode_state
+    semantic = _native_semantic_state(state)
+    payload = encode_state(semantic)
+    return NativeCoreDomainEnvelope(
+        domain="SEM",
+        identity=state.identity,
+        revision=state.revision,
+        state_hash=state_hash(state),
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+    )
+
+
+def to_native_core_bundle(state: SemanticState) -> NativeCoreEnvelopeBundle:
+    return NativeCoreEnvelopeBundle(
+        sem=to_native_core_sem_envelope(state),
+        state=to_native_core_state_envelope(state),
+    )

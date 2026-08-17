@@ -6,13 +6,17 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from .bridge import to_core_bundle, to_core_sem_envelope, to_core_state_envelope
+from .bridge import (
+    to_core_bundle, to_core_sem_envelope, to_core_state_envelope,
+    to_native_core_bundle, to_native_core_sem_envelope, to_native_core_state_envelope,
+)
 from .canonical import state_hash
 from .diff import diff_states
 from .errors import DSRError
 from .events import TransitionEvent
 from .fusion import SemanticProposal
 from .model import SemanticState
+from .native import decode_state, encode_state
 from .runtime import apply_event, replay
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import validate_state
@@ -29,12 +33,16 @@ def _read_state(path: str) -> SemanticState:
     return SemanticState.from_dict(raw)
 
 
+def _read_native(path: str) -> SemanticState:
+    return decode_state(Path(path).read_bytes())
+
+
 def _emit(value: Any) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.2")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.3 (AI-native canonical state)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis DSR state")
@@ -72,8 +80,20 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--relation-threshold", type=float, default=0.5)
     sp.add_argument("--occurred-at")
 
-    sp = sub.add_parser("bridge", help="Export Core-parseable SEM/R2 and/or STATE/R2 decimal wire envelope")
+    sp = sub.add_parser("native-pack", help="Compile an inspection JSON state into canonical AI-native .isqln bytes")
     sp.add_argument("--state", required=True)
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("native-inspect", help="Project canonical .isqln bytes into inspection JSON")
+    sp.add_argument("--native", required=True)
+
+    sp = sub.add_parser("native-hash", help="Compute state hash from canonical .isqln bytes")
+    sp.add_argument("--native", required=True)
+
+    sp = sub.add_parser("bridge", help="Export Core-parseable bridge; native input emits R3/DSRN, JSON input retains legacy R2/DSR")
+    source = sp.add_mutually_exclusive_group(required=True)
+    source.add_argument("--state")
+    source.add_argument("--native")
     sp.add_argument("--domain", choices=("sem", "state", "bundle"), default="state")
 
     return p
@@ -92,7 +112,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "hash":
             state = _read_state(args.state)
-            _emit({"schema": "isql.dsr-hash/v0.2", "identity": state.identity, "revision": state.revision, "state_hash": state_hash(state)})
+            _emit({"schema": "isql.dsr-hash/v0.3", "identity": state.identity, "revision": state.revision, "state_hash": state_hash(state)})
             return 0
 
         if args.command == "validate":
@@ -109,7 +129,7 @@ def main(argv: list[str] | None = None) -> int:
             event = TransitionEvent.from_dict(raw)
             result = apply_event(state, event)
             _emit({
-                "schema": "isql.dsr-apply-result/v0.2",
+                "schema": "isql.dsr-apply-result/v0.3",
                 "previous_hash": result.previous_hash,
                 "next_hash": result.next_hash,
                 "state": result.state.to_dict(),
@@ -134,7 +154,7 @@ def main(argv: list[str] | None = None) -> int:
             methods = tuple(x.strip() for x in args.methods.split(",") if x.strip())
             descriptors = compute_topology_descriptors(state, methods=methods)
             _emit({
-                "schema": "isql.dsr-topology-result/v0.2",
+                "schema": "isql.dsr-topology-result/v0.3",
                 "identity": state.identity,
                 "revision": state.revision,
                 "basis_hash": topology_basis_hash(state),
@@ -162,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             result = apply_event(state, event)
             fusion = result.state.history[-1]["result"]["fusion"]
             _emit({
-                "schema": "isql.dsr-fuse-result/v0.2",
+                "schema": "isql.dsr-fuse-result/v0.3",
                 "previous_hash": result.previous_hash,
                 "next_hash": result.next_hash,
                 "fusion": fusion,
@@ -170,14 +190,51 @@ def main(argv: list[str] | None = None) -> int:
             })
             return 0
 
-        if args.command == "bridge":
+        if args.command == "native-pack":
             state = _read_state(args.state)
-            if args.domain == "sem":
-                _emit(to_core_sem_envelope(state).to_dict())
-            elif args.domain == "state":
-                _emit(to_core_state_envelope(state).to_dict())
+            payload = encode_state(state)
+            Path(args.out).write_bytes(payload)
+            _emit({
+                "schema": "isql.dsr-native-artifact/v0.3",
+                "identity": state.identity,
+                "revision": state.revision,
+                "state_hash": state_hash(state),
+                "bytes": len(payload),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
+        if args.command == "native-inspect":
+            _emit(_read_native(args.native).to_dict())
+            return 0
+
+        if args.command == "native-hash":
+            state = _read_native(args.native)
+            _emit({
+                "schema": "isql.dsr-native-hash/v0.3",
+                "identity": state.identity,
+                "revision": state.revision,
+                "state_hash": state_hash(state),
+            })
+            return 0
+
+        if args.command == "bridge":
+            if args.native:
+                state = _read_native(args.native)
+                if args.domain == "sem":
+                    _emit(to_native_core_sem_envelope(state).to_dict())
+                elif args.domain == "state":
+                    _emit(to_native_core_state_envelope(state).to_dict())
+                else:
+                    _emit(to_native_core_bundle(state).to_dict())
             else:
-                _emit(to_core_bundle(state).to_dict())
+                state = _read_state(args.state)
+                if args.domain == "sem":
+                    _emit(to_core_sem_envelope(state).to_dict())
+                elif args.domain == "state":
+                    _emit(to_core_state_envelope(state).to_dict())
+                else:
+                    _emit(to_core_bundle(state).to_dict())
             return 0
 
         parser.error("unknown command")

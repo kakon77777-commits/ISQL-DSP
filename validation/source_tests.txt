@@ -3,13 +3,15 @@ test_envelope_payload_is_valid_utf8_json_and_not_registry_id_semantics (test_bri
 test_envelope_round_trip_rejects_tampered_decimal_payload (test_bridge_v02.BridgeV02Tests.test_envelope_round_trip_rejects_tampered_decimal_payload) ... ok
 test_sem_envelope_excludes_context_and_history_but_preserves_semantics (test_bridge_v02.BridgeV02Tests.test_sem_envelope_excludes_context_and_history_but_preserves_semantics) ... ok
 test_state_envelope_is_lossless_and_both_wires_are_core_parseable_digits_only (test_bridge_v02.BridgeV02Tests.test_state_envelope_is_lossless_and_both_wires_are_core_parseable_digits_only) ... ok
-test_canonical_bytes_are_utf8_and_hash_is_sha256_hex (test_canonical.CanonicalTests.test_canonical_bytes_are_utf8_and_hash_is_sha256_hex) ... ok
+test_canonical_bytes_are_native_and_hash_is_sha256_hex (test_canonical.CanonicalTests.test_canonical_bytes_are_native_and_hash_is_sha256_hex) ... ok
 test_canonical_json_is_independent_of_axis_input_order (test_canonical.CanonicalTests.test_canonical_json_is_independent_of_axis_input_order) ... ok
 test_apply_replay_and_bridge_commands (test_cli.CLITests.test_apply_replay_and_bridge_commands) ... ok
 test_new_and_hash_commands (test_cli.CLITests.test_new_and_hash_commands) ... ok
 test_bridge_command_supports_sem_state_and_bundle (test_cli_v02.CLIV02Tests.test_bridge_command_supports_sem_state_and_bundle) ... ok
 test_fuse_command_applies_replayable_fusion_event (test_cli_v02.CLIV02Tests.test_fuse_command_applies_replayable_fusion_event) ... ok
 test_topology_command_computes_builtin_descriptors (test_cli_v02.CLIV02Tests.test_topology_command_computes_builtin_descriptors) ... ok
+test_bridge_accepts_native_artifact_and_emits_r3_bundle (test_cli_v03.CLIV03Tests.test_bridge_accepts_native_artifact_and_emits_r3_bundle) ... ok
+test_native_pack_inspect_and_hash (test_cli_v03.CLIV03Tests.test_native_pack_inspect_and_hash) ... ok
 test_diff_reports_semantic_changes_by_identity (test_diff_validation.DiffTests.test_diff_reports_semantic_changes_by_identity) ... ok
 test_validate_state_detects_tampered_history (test_diff_validation.ValidationTests.test_validate_state_detects_tampered_history) ... ok
 test_validate_state_replays_history_from_genesis (test_diff_validation.ValidationTests.test_validate_state_replays_history_from_genesis) ... ok
@@ -23,6 +25,22 @@ test_state_round_trips_via_dict (test_model.SemanticStateTests.test_state_round_
 test_candidates_reject_duplicates (test_model.ValueModelTests.test_candidates_reject_duplicates) ... ok
 test_interval_rejects_reverse_bounds (test_model.ValueModelTests.test_interval_rejects_reverse_bounds) ... ok
 test_point_interval_and_candidates_have_typed_dicts (test_model.ValueModelTests.test_point_interval_and_candidates_have_typed_dicts) ... ok
+test_inspection_json_is_reversible_but_not_hash_authority (test_native_authority.NativeAuthorityTests.test_inspection_json_is_reversible_but_not_hash_authority) ... ok
+test_native_bytes_are_authoritative_for_canonical_bytes_and_hash (test_native_authority.NativeAuthorityTests.test_native_bytes_are_authoritative_for_canonical_bytes_and_hash) ... ok
+test_transition_hash_chain_uses_native_hash (test_native_authority.NativeAuthorityTests.test_transition_hash_chain_uses_native_hash) ... ok
+test_bundle_and_tamper_rejection (test_native_bridge.NativeBridgeTests.test_bundle_and_tamper_rejection) ... ok
+test_decimal_bytes_round_trip (test_native_bridge.NativeBridgeTests.test_decimal_bytes_round_trip) ... ok
+test_sem_native_wire_excludes_context_and_history (test_native_bridge.NativeBridgeTests.test_sem_native_wire_excludes_context_and_history) ... ok
+test_state_native_wire_is_r3_dsrn_and_lossless (test_native_bridge.NativeBridgeTests.test_state_native_wire_is_r3_dsrn_and_lossless) ... ok
+test_fusion_history_does_not_embed_proposal_or_decision_field_names (test_native_events.NativeEventCodecTests.test_fusion_history_does_not_embed_proposal_or_decision_field_names) ... ok
+test_history_uses_numeric_opcode_not_operation_or_schema_labels (test_native_events.NativeEventCodecTests.test_history_uses_numeric_opcode_not_operation_or_schema_labels) ... ok
+test_operation_opcode_mapping_is_stable_and_reversible (test_native_events.NativeEventCodecTests.test_operation_opcode_mapping_is_stable_and_reversible) ... ok
+test_nonfinite_float_is_rejected (test_native_primitives.NativePrimitiveCodecTests.test_nonfinite_float_is_rejected) ... ok
+test_typed_values_round_trip_and_maps_ignore_insertion_order (test_native_primitives.NativePrimitiveCodecTests.test_typed_values_round_trip_and_maps_ignore_insertion_order) ... ok
+test_uvarint_round_trip_is_canonical (test_native_primitives.NativePrimitiveCodecTests.test_uvarint_round_trip_is_canonical) ... ok
+test_equivalent_state_order_produces_identical_native_bytes (test_native_state.NativeStateCodecTests.test_equivalent_state_order_produces_identical_native_bytes) ... ok
+test_native_bytes_do_not_serialize_json_schema_field_names (test_native_state.NativeStateCodecTests.test_native_bytes_do_not_serialize_json_schema_field_names) ... ok
+test_native_state_round_trip_is_exact (test_native_state.NativeStateCodecTests.test_native_state_round_trip_is_exact) ... ok
 test_context_relation_projection_and_removal_operations (test_runtime.RuntimeTests.test_context_relation_projection_and_removal_operations) ... ok
 test_stale_event_fails_closed (test_runtime.RuntimeTests.test_stale_event_fails_closed) ... ok
 test_upsert_axis_increments_revision_and_records_hash_chain (test_runtime.RuntimeTests.test_upsert_axis_increments_revision_and_records_hash_chain) ... ok
@@ -33,6 +51,6 @@ test_refresh_topology_event_is_replayable_and_relation_change_invalidates_descri
 test_validation_rejects_stale_topology_basis_even_without_genesis (test_topology.TopologyTests.test_validation_rejects_stale_topology_basis_even_without_genesis) ... ok
 
 ----------------------------------------------------------------------
-Ran 33 tests in 2.848s
+Ran 51 tests in 5.318s
 
 OK

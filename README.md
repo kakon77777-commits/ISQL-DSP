@@ -1,134 +1,105 @@
-# ISQL Dynamic Spectrum Runtime v0.2.0
+# ISQL Dynamic Spectrum Runtime v0.3.0
 
-ISQL-DSR is the internal dynamic-semantic runtime line of ISQL. It is intentionally separate from the public/transport-oriented ISQL Core Runtime.
+**AI-native parallel internal runtime.** This branch does not optimize the canonical state for human readability.
 
-v0.2 makes the **Topology** part of the historical Symbol–Topology–Flow design operational and adds deterministic, uncertainty-aware multi-source semantic fusion.
+## Canonical authority
 
-## What v0.2 adds
+v0.3 changes the source of truth:
 
-- `SemanticState` schema `isql.dsr-state/v0.2`
-- finite-active spectral axes: point / interval / candidate-set
-- typed relation graph
-- typed topology descriptors bound to a canonical relation-basis SHA-256
-- built-in topology methods:
-  - `graph.components`
-  - `graph.cycle_rank`
-- relation changes automatically invalidate topology descriptors
-- validation rejects stale topology descriptors even without replay history
-- `SemanticProposal` with source weight, base revision, and base state hash
-- deterministic uncertainty-aware proposal fusion
-- explicit fusion conflicts instead of silent winner selection on ties / weak support
-- fusion is a replayable history event
-- `SEM/R2` semantic snapshot bridge
-- `STATE/R2` exact state bridge
-- Core v0.4-compatible digits-only wires using fixed-width decimal UTF-8 byte encoding
-- CLI commands: `topology`, `fuse`, and multi-domain `bridge`
+```text
+v0.1-v0.2 development model:
+SemanticState -> canonical JSON -> SHA-256
 
-## Core invariant
-
-Registry IDs and transport codes are references. They are **not** meaning.
-
-DSR keeps the semantic object explicit. Core bridging happens only after a DSR state or semantic snapshot has been canonicalized.
-
-## Install
-
-```bash
-python -m pip install dist/isql_dsr_runtime-0.2.0-py3-none-any.whl
+v0.3 AI-native model:
+SemanticState -> typed native bytes (.isqln) -> SHA-256
+                         |
+                         +-> optional inspection JSON
 ```
 
-Or run from source:
+The canonical artifact is a deterministic, typed, versioned binary state. JSON, Markdown, natural language, graphs, and future EML renderings are projections or inspection formats.
 
-```bash
-PYTHONPATH=src python -m isql_dsr --help
-```
+Human-readable field names are not serialized as native schema labels. Known transition operations use numeric opcodes. Fusion proposals and fusion decisions use fixed numeric layouts rather than embedding their JSON field names in the canonical byte stream.
+
+## What v0.3 implements
+
+- All v0.2 finite-active spectrum, topology, uncertainty-aware fusion, replay and validation behavior.
+- AI-native binary state format `NATIVE_FORMAT_VERSION = 3`.
+- Canonical hash over native bytes, not JSON.
+- Canonical map ordering and typed primitive codec.
+- Numeric transition opcodes.
+- Numeric-layout fusion proposal and decision history.
+- `.isqln` canonical state artifacts.
+- Optional inspection JSON projection.
+- Legacy JSON `R2/DSR` bridge retained for compatibility.
+- Native Core bridge:
+  - `SEM/R3:DSRN`
+  - `STATE/R3:DSRN`
+- Digits-only Core transport of native bytes.
 
 ## CLI
 
-Create a state:
+Compile inspection JSON into canonical native state:
 
 ```bash
-isql-dsr new --identity demo:alpha --context-json '{"task":"deployment-review"}'
+isql-dsr native-pack \
+  --state examples/v0.3/final_inspection.json \
+  --out state.isqln
 ```
 
-Validate:
+Inspect native state when a human-readable/debug view is needed:
 
 ```bash
-isql-dsr validate --state examples/v0.2/final_state.json --genesis examples/v0.2/genesis.json
+isql-dsr native-inspect --native state.isqln
 ```
 
-Compute topology directly:
+Hash the canonical native state:
 
 ```bash
-isql-dsr topology --state examples/v0.2/pre_fusion_state.json
+isql-dsr native-hash --native state.isqln
 ```
 
-Fuse proposals atomically:
+Bridge native state directly to Core:
 
 ```bash
-isql-dsr fuse \
-  --state examples/v0.2/pre_fusion_state.json \
-  --proposals examples/v0.2/proposals.json \
-  --event-id evt-demo-fusion
+isql-dsr bridge --native state.isqln --domain bundle
 ```
 
-Export Core-compatible numeric envelopes:
+The older JSON inspection route is still available:
 
 ```bash
-isql-dsr bridge --state examples/v0.2/final_state.json --domain sem
-isql-dsr bridge --state examples/v0.2/final_state.json --domain state
-isql-dsr bridge --state examples/v0.2/final_state.json --domain bundle
+isql-dsr bridge --state final_inspection.json --domain state
 ```
 
-## Topology semantics
+That route is explicitly legacy `R2/DSR`, not the v0.3 canonical transport.
 
-Every `TopologyDescriptor` contains a `basis_hash`. For v0.2, the basis is the canonical sorted typed-relation graph. If relations change, old descriptors are removed by the runtime. If an externally edited file tries to retain a descriptor with the wrong basis hash, validation fails.
+## AI-native rule
 
-The built-in `graph.components` and `graph.cycle_rank` methods use a weak undirected projection of typed relations. They are deliberately simple first descriptors, not a claim that these two numbers exhaust semantic topology.
-
-## Fusion semantics
-
-Every proposal is fail-closed against:
-
-- `identity`
-- `base_revision`
-- `base_hash`
-
-For an axis proposal, effective support is:
+The design rule is:
 
 ```text
-source_weight * (1 - axis_uncertainty)
+Native State -> Native Operations -> Native State
+      |
+      +-> Interpretation Projection (optional)
+              |
+              +-> Human Projection (optional)
 ```
 
-Winner support is divided by total source weight. If the best variants tie, or support is below the configured threshold, DSR keeps the base axis and records a conflict. Accepted relations use weighted support over the full proposal set.
+“AI-native” does not mean deliberately obscure. It means the lowest layer is selected for deterministic machine composition, typing, versioning and verification rather than human readability.
 
-The algorithm is `weighted-agreement/v0.2` and sorts proposals before aggregation, so input ordering cannot change a valid result.
-
-## Core numeric wire
-
-v0.2 encodes each UTF-8 byte of canonical JSON as exactly three decimal digits (`000`–`255`). Therefore a wire has the Core v0.4 shape:
+## Core / DSR split
 
 ```text
-ISQL1:SEM:R2:DSR<digits>
-ISQL1:STATE:R2:DSR<digits>
+ISQL Core v0.4
+  address / registry / parser / transport / recovery
+
+ISQL DSR v0.3
+  native state / spectrum / topology / flow / fusion / replay
 ```
 
-This is a **compatibility bridge**, not a compression claim. Its purpose is to prove that full DSR SEM/STATE payloads can cross the current Core digits-only grammar without losing semantic structure. A later compact numeric codec can replace this profile without changing the DSR object model.
+## Important migration boundary
 
-## Schema compatibility
+v0.2 history chains were hashed from the v0.2 canonical JSON representation. v0.3 history chains are hashed from native bytes. Therefore a non-genesis v0.2 state must not be silently relabeled as v0.3 history.
 
-v0.2 deliberately bumps the DSR state/event schemas. Non-genesis v0.1 history chains should remain with the v0.1 runtime unless explicitly migrated and re-hashed. v0.1 is preserved as a separate immutable release.
+History-free/genesis inspection states can be compiled with `native-pack`. Historical v0.2 chains should be migrated by replaying the source events under v0.3 so that all previous/next hashes are regenerated from native state bytes.
 
-## Files
-
-- `src/isql_dsr/model.py` — semantic value/state models
-- `src/isql_dsr/topology.py` — relation-basis hashing and topology computation
-- `src/isql_dsr/fusion.py` — proposal and fusion contracts
-- `src/isql_dsr/events.py` — fail-closed events
-- `src/isql_dsr/runtime.py` — state transition application/replay
-- `src/isql_dsr/bridge.py` — SEM/STATE numeric Core bridge
-- `src/isql_dsr/validation.py` — integrity and replay validation
-- `src/isql_dsr/diff.py` — semantic/topology state diff
-- `src/isql_dsr/cli.py` — command line application
-- `docs/` — theory anchors and implementation plan
-- `examples/v0.2/` — deterministic end-to-end fixtures
-- `tests/` — source/install test suite
+See `docs/NATIVE_FORMAT_v0.3.md` and `AI_HANDOFF.md`.

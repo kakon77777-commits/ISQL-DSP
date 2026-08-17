@@ -288,7 +288,8 @@ class SemanticState:
     projections: tuple[SemanticProjection, ...] = ()
     history: tuple[dict[str, JSONValue], ...] = ()
 
-    SCHEMA = "isql.dsr-state/v0.2"
+    SCHEMA = "isql.dsr-state/v0.3"
+    LEGACY_SCHEMAS = {"isql.dsr-state/v0.2"}
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "identity", _text(self.identity, "STATE_IDENTITY_REQUIRED"))
@@ -356,7 +357,7 @@ class SemanticState:
     def from_dict(cls, value: Mapping[str, Any]) -> "SemanticState":
         if not isinstance(value, Mapping):
             raise DSRValidationError("STATE_MUST_BE_OBJECT")
-        if value.get("schema") not in (None, cls.SCHEMA):
+        if value.get("schema") not in (None, cls.SCHEMA, *cls.LEGACY_SCHEMAS):
             raise DSRValidationError("INVALID_STATE_SCHEMA")
         axes = value.get("axes", [])
         relations = value.get("relations", [])

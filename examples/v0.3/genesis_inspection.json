@@ -1,0 +1,14 @@
+{
+  "axes": [],
+  "context": {
+    "domain": "research",
+    "mode": "ai-native"
+  },
+  "history": [],
+  "identity": "isql:dsr:v03:demo",
+  "projections": [],
+  "relations": [],
+  "revision": 0,
+  "schema": "isql.dsr-state/v0.3",
+  "topology": []
+}

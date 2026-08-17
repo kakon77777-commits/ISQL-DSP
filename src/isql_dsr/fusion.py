@@ -49,7 +49,8 @@ class SemanticProposal:
     relations: tuple[TypedRelation, ...] = ()
     produced_at: str | None = None
 
-    SCHEMA = "isql.dsr-proposal/v0.2"
+    SCHEMA = "isql.dsr-proposal/v0.3"
+    LEGACY_SCHEMAS = {"isql.dsr-proposal/v0.2"}
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "proposal_id", _text(self.proposal_id, "PROPOSAL_ID_REQUIRED"))
@@ -119,7 +120,7 @@ class SemanticProposal:
     def from_dict(cls, value: Mapping[str, Any]) -> "SemanticProposal":
         if not isinstance(value, Mapping):
             raise DSRValidationError("PROPOSAL_MUST_BE_OBJECT")
-        if value.get("schema") not in (None, cls.SCHEMA):
+        if value.get("schema") not in (None, cls.SCHEMA, *cls.LEGACY_SCHEMAS):
             raise DSRValidationError("INVALID_PROPOSAL_SCHEMA")
         axes = value.get("axes", [])
         relations = value.get("relations", [])

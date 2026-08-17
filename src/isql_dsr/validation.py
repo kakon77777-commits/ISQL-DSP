@@ -19,7 +19,7 @@ class ValidationReport:
 
     def to_dict(self) -> dict[str, object]:
         return {
-            "schema": "isql.dsr-validation/v0.2",
+            "schema": "isql.dsr-validation/v0.3",
             "valid": self.valid,
             "errors": list(self.errors),
             "checked_history_records": self.checked_history_records,
