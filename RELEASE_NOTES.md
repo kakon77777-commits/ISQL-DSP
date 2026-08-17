@@ -1,39 +1,53 @@
-# ISQL Dynamic Spectrum Runtime v0.3.0 — Release Notes
+# ISQL Dynamic Spectrum Runtime v0.4.0 — Release Notes
 
-## AI-native canonical-state transition
+## Registered machine-space transition
 
-v0.3 changes the canonical source of truth from human-readable JSON to a deterministic typed binary representation.
+v0.4 moves repeated semantic identifiers out of individual snapshots/events and into a shared append-only machine symbol space.
 
 ### Added
 
-- `.isqln` canonical native state format.
-- Primitive numeric type tags and canonical variable-length integers.
-- Fixed-layout native encoding for spectrum axes, relations, topology and projections.
-- Numeric opcodes for transition operations.
-- Fixed-layout fusion proposal and fusion-decision history.
-- Native SHA-256 state hashing.
-- `native-pack`, `native-inspect`, `native-hash` CLI commands.
-- Core-native digits-only bridge using `SEM/R3:DSRN` and `STATE/R3:DSRN`.
-- `docs/NATIVE_FORMAT_v0.3.md`.
+- `.isqlr` append-only namespaced symbol registry.
+- Stable positive integer symbol references.
+- Registry revision and prefix-hash verification.
+- Registered v0.4 `.isqln` snapshot format.
+- Snapshot canonical hash over registry-bound native bytes.
+- `.isqle` canonical native event-stream format.
+- Event-stream previous/next registered snapshot hash chain.
+- Deterministic stream replay.
+- Registry-aware CLI commands:
+  - `registry-build`
+  - `registered-pack`
+  - `registered-inspect`
+  - `registered-hash`
+  - `stream-pack`
+  - `stream-replay`
+  - `bridge-r4`
+- Core R4 transport:
+  - `SEM/R4:DSRR`
+  - `STATE/R4:DSRR`
+  - `EXEC/R4:DSRE`
+- `docs/NATIVE_FORMAT_v0.4.md`.
 
 ### Changed
 
-- JSON is now an inspection/import projection, not canonical storage.
-- State and event schemas are v0.3.
-- Proposal schema is v0.3; the weighted-agreement fusion algorithm remains algorithm version v0.2 because its decision rule did not change.
-- v0.3 hash chains are intentionally incompatible with old v0.2 JSON-derived state hashes.
+- Transition history is no longer canonicalized inside v0.4 materialized snapshots.
+- Repeated semantic identifiers are encoded as registry refs rather than duplicated UTF-8 strings in each artifact.
+- The shared registry becomes explicit side information and its cost can be accounted for independently.
+- v0.3 `.isqln` remains supported as a compatibility artifact but is not the v0.4 canonical form.
 
-### Retained
+### Preserved
 
-- v0.2 topology descriptors.
-- uncertainty-aware multi-source fusion.
-- deterministic replay and validation.
-- fail-closed revision/hash guards.
-- legacy Core `R2/DSR` JSON bridge for compatibility.
+- finite-active spectra;
+- typed relations;
+- topology descriptors;
+- uncertainty-aware fusion;
+- fail-closed event semantics;
+- v0.3 and v0.2 compatibility bridges.
 
-### Not claimed
+### Explicit non-claims
 
-- Human unreadability is not itself a feature or proof of AI nativeness.
-- Native bytes are not claimed to be optimal machine code.
-- Raw semantic text values may still exist as semantic data.
-- No universal semantic registry or universal HSO basis is claimed in v0.3.
+- v0.4 does not claim a universal semantic vocabulary.
+- integer symbol IDs are not meanings.
+- registry lookup is not claimed to solve synonymy/polysemy by itself.
+- the current interpretation adapter is not claimed to be final machine-native execution.
+- registry size and synchronization cost must be included in any compression claim.

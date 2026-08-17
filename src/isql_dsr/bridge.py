@@ -494,3 +494,174 @@ def to_native_core_bundle(state: SemanticState) -> NativeCoreEnvelopeBundle:
         sem=to_native_core_sem_envelope(state),
         state=to_native_core_state_envelope(state),
     )
+
+# ---- v0.4 registered AI-native bridge --------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class RegisteredCoreEnvelope:
+    domain: str
+    identity_ref: int
+    revision: int
+    registry_revision: int
+    registry_hash: str
+    state_hash: str
+    content_hash: str
+    payload_digits: str
+    resolution: str = "R4"
+    control: str = "DSRR"
+    protocol_version: int = 1
+    schema: str = "isql.dsr-registered-core-envelope/v0.4"
+
+    def __post_init__(self) -> None:
+        if self.domain not in {"SEM", "STATE", "EXEC"}:
+            raise DSRValidationError("REGISTERED_CORE_DOMAIN_INVALID")
+        if self.resolution != "R4":
+            raise DSRValidationError("REGISTERED_CORE_RESOLUTION_INVALID")
+        expected_control = "DSRE" if self.domain == "EXEC" else "DSRR"
+        if self.control != expected_control:
+            raise DSRValidationError("REGISTERED_CORE_CONTROL_INVALID")
+        if self.protocol_version != 1:
+            raise DSRValidationError("REGISTERED_CORE_PROTOCOL_VERSION_INVALID")
+        if self.schema != "isql.dsr-registered-core-envelope/v0.4":
+            raise DSRValidationError("REGISTERED_CORE_SCHEMA_INVALID")
+        if not isinstance(self.identity_ref, int) or isinstance(self.identity_ref, bool) or self.identity_ref <= 0:
+            raise DSRValidationError("REGISTERED_CORE_IDENTITY_REF_INVALID")
+        if not isinstance(self.revision, int) or isinstance(self.revision, bool) or self.revision < 0:
+            raise DSRValidationError("REGISTERED_CORE_REVISION_INVALID")
+        if not isinstance(self.registry_revision, int) or isinstance(self.registry_revision, bool) or self.registry_revision < 0:
+            raise DSRValidationError("REGISTERED_CORE_REGISTRY_REVISION_INVALID")
+        for value, error in (
+            (self.registry_hash, "REGISTERED_CORE_REGISTRY_HASH_INVALID"),
+            (self.state_hash, "REGISTERED_CORE_STATE_HASH_INVALID"),
+            (self.content_hash, "REGISTERED_CORE_CONTENT_HASH_INVALID"),
+        ):
+            if not isinstance(value, str) or not _HASH_RE.fullmatch(value):
+                raise DSRValidationError(error)
+        payload = decode_decimal_bytes(self.payload_digits)
+        if hashlib.sha256(payload).hexdigest() != self.content_hash:
+            raise DSRValidationError("REGISTERED_CORE_CONTENT_HASH_MISMATCH")
+        if not _WIRE_RE.fullmatch(self.wire):
+            raise DSRValidationError("REGISTERED_CORE_WIRE_INVALID")
+
+    @property
+    def wire(self) -> str:
+        return f"ISQL{self.protocol_version}:{self.domain}:{self.resolution}:{self.control}{self.payload_digits}"
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": self.schema,
+            "protocol_version": self.protocol_version,
+            "domain": self.domain,
+            "resolution": self.resolution,
+            "control": self.control,
+            "identity_ref": self.identity_ref,
+            "revision": self.revision,
+            "registry_revision": self.registry_revision,
+            "registry_hash": self.registry_hash,
+            "state_hash": self.state_hash,
+            "content_hash": self.content_hash,
+            "payload_digits": self.payload_digits,
+            "wire": self.wire,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "RegisteredCoreEnvelope":
+        if not isinstance(value, Mapping):
+            raise DSRValidationError("REGISTERED_CORE_ENVELOPE_MUST_BE_OBJECT")
+        return cls(
+            domain=value.get("domain"),
+            identity_ref=value.get("identity_ref"),
+            revision=value.get("revision"),
+            registry_revision=value.get("registry_revision"),
+            registry_hash=value.get("registry_hash"),
+            state_hash=value.get("state_hash"),
+            content_hash=value.get("content_hash"),
+            payload_digits=value.get("payload_digits"),
+            resolution=value.get("resolution", "R4"),
+            control=value.get("control", "DSRE" if value.get("domain") == "EXEC" else "DSRR"),
+            protocol_version=value.get("protocol_version", 1),
+            schema=value.get("schema", "isql.dsr-registered-core-envelope/v0.4"),
+        )
+
+
+def _registered_semantic_state(state: Any) -> Any:
+    from .machine import NativeSemanticState
+    if not isinstance(state, NativeSemanticState):
+        raise TypeError("state must be NativeSemanticState")
+    return NativeSemanticState(
+        registry_revision=state.registry_revision,
+        registry_hash=state.registry_hash,
+        identity_ref=state.identity_ref,
+        revision=state.revision,
+        context=(),
+        axes=state.axes,
+        relations=state.relations,
+        topology=state.topology,
+        projections=state.projections,
+    )
+
+
+def to_registered_core_state_envelope(state: Any) -> RegisteredCoreEnvelope:
+    from .machine import NativeSemanticState, encode_registered_state, registered_state_hash
+    if not isinstance(state, NativeSemanticState):
+        raise TypeError("state must be NativeSemanticState")
+    payload = encode_registered_state(state)
+    digest = registered_state_hash(state)
+    return RegisteredCoreEnvelope(
+        domain="STATE",
+        identity_ref=state.identity_ref,
+        revision=state.revision,
+        registry_revision=state.registry_revision,
+        registry_hash=state.registry_hash,
+        state_hash=digest,
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+        control="DSRR",
+    )
+
+
+def to_registered_core_sem_envelope(state: Any) -> RegisteredCoreEnvelope:
+    from .machine import NativeSemanticState, encode_registered_state, registered_state_hash
+    if not isinstance(state, NativeSemanticState):
+        raise TypeError("state must be NativeSemanticState")
+    semantic = _registered_semantic_state(state)
+    payload = encode_registered_state(semantic)
+    return RegisteredCoreEnvelope(
+        domain="SEM",
+        identity_ref=state.identity_ref,
+        revision=state.revision,
+        registry_revision=state.registry_revision,
+        registry_hash=state.registry_hash,
+        state_hash=registered_state_hash(state),
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+        control="DSRR",
+    )
+
+
+def to_registered_core_exec_envelope(stream: Any, genesis: Any) -> RegisteredCoreEnvelope:
+    from .machine import NativeSemanticState, registered_state_hash
+    from .stream import NativeEventStream, encode_event_stream
+    if not isinstance(stream, NativeEventStream):
+        raise TypeError("stream must be NativeEventStream")
+    if not isinstance(genesis, NativeSemanticState):
+        raise TypeError("genesis must be NativeSemanticState")
+    if registered_state_hash(genesis) != stream.genesis_hash:
+        raise DSRValidationError("REGISTERED_CORE_EXEC_GENESIS_HASH_MISMATCH")
+    if genesis.registry_revision != stream.registry_revision or genesis.registry_hash != stream.registry_hash:
+        raise DSRValidationError("REGISTERED_CORE_EXEC_REGISTRY_MISMATCH")
+    payload = encode_event_stream(stream)
+    final_hash = stream.records[-1].next_hash if stream.records else stream.genesis_hash
+    final_revision = genesis.revision + len(stream.records)
+    return RegisteredCoreEnvelope(
+        domain="EXEC",
+        identity_ref=genesis.identity_ref,
+        revision=final_revision,
+        registry_revision=stream.registry_revision,
+        registry_hash=stream.registry_hash,
+        state_hash=final_hash,
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+        control="DSRE",
+    )

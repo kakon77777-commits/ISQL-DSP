@@ -1,0 +1,66 @@
+{
+  "axes": [
+    {
+      "domain": "ordinal",
+      "key": "risk",
+      "resolution": 3,
+      "uncertainty": 0.4,
+      "value": {
+        "kind": "point",
+        "value": "high"
+      }
+    }
+  ],
+  "context": {
+    "mode": "machine",
+    "task": "deployment-analysis"
+  },
+  "history": [],
+  "identity": "isql:dsr:v04:demo",
+  "projections": [
+    {
+      "media_type": "application/x-isql-machine-trace",
+      "payload": {
+        "confidence": 0.91,
+        "lane": 2
+      },
+      "projection_id": "machine.trace"
+    }
+  ],
+  "relations": [
+    {
+      "object": "deploy",
+      "predicate": "affects",
+      "subject": "risk"
+    },
+    {
+      "object": "database",
+      "predicate": "depends_on",
+      "subject": "service"
+    }
+  ],
+  "revision": 4,
+  "schema": "isql.dsr-state/v0.3",
+  "topology": [
+    {
+      "basis_hash": "9c4e95e1143aa4e7d2184f3c9711bcb616a5bf9245d6dc64bf03cf6e86382312",
+      "confidence": 1.0,
+      "descriptor_id": "graph.components",
+      "method": "graph.components",
+      "parameters": {
+        "graph_mode": "weak-undirected-projection"
+      },
+      "value": 2
+    },
+    {
+      "basis_hash": "9c4e95e1143aa4e7d2184f3c9711bcb616a5bf9245d6dc64bf03cf6e86382312",
+      "confidence": 1.0,
+      "descriptor_id": "graph.cycle_rank",
+      "method": "graph.cycle_rank",
+      "parameters": {
+        "graph_mode": "weak-undirected-projection"
+      },
+      "value": 0
+    }
+  ]
+}

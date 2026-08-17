@@ -1,10 +1,10 @@
 WARNING: The directory '/home/oai/.cache/pip' or its parent directory is not owned or is not writable by the current user. The cache has been disabled. Check the permissions and owner of that directory. If executing pip with sudo, you should use sudo's -H flag.
-Processing /mnt/data/ISQL_DSR_Runtime_v0.3.0
+Processing /mnt/data/ISQL_DSR_Runtime_v0.4.0
   Preparing metadata (pyproject.toml): started
   Preparing metadata (pyproject.toml): finished with status 'done'
 Building wheels for collected packages: isql-dsr-runtime
   Building wheel for isql-dsr-runtime (pyproject.toml): started
   Building wheel for isql-dsr-runtime (pyproject.toml): finished with status 'done'
-  Created wheel for isql-dsr-runtime: filename=isql_dsr_runtime-0.3.0-py3-none-any.whl size=29501 sha256=d224ee1f159e08973a4e770bc46c802fe91226c8a4e38492f78f24f526675f04
-  Stored in directory: /tmp/pip-ephem-wheel-cache-3k9d9mrs/wheels/6a/2d/65/a1d13a40ac2a5582cb4a179cb69eb810ce936f80d9406d5100
+  Created wheel for isql-dsr-runtime: filename=isql_dsr_runtime-0.4.0-py3-none-any.whl size=44371 sha256=0840514395bd61290871c388a82f5f174d944d28253a4422aff3cb1891a1a8f6
+  Stored in directory: /tmp/pip-ephem-wheel-cache-x0r957nd/wheels/7b/76/4a/2a7beb2de79d0590bd0d93d9dcf441867855d696d676959913
 Successfully built isql-dsr-runtime

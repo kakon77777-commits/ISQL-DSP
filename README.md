@@ -1,105 +1,152 @@
-# ISQL Dynamic Spectrum Runtime v0.3.0
+# ISQL Dynamic Spectrum Runtime v0.4.0
 
-**AI-native parallel internal runtime.** This branch does not optimize the canonical state for human readability.
+**Registered AI-native internal runtime. Human readability is projection-only.**
+
+v0.4 splits the canonical machine layer into three artifacts:
+
+```text
+symbols.isqlr   append-only shared symbol space
+state.isqln     registered materialized snapshot
+events.isqle    registered replayable event stream
+```
 
 ## Canonical authority
 
-v0.3 changes the source of truth:
+```text
+Inspection / human source
+        |
+        v
+Registry compiler ------------------------------+
+        |                                        |
+        v                                        v
+  .isqlr shared symbols <---- refs ---- registered .isqln
+        ^                                        ^
+        |                                        |
+        +------------- refs ---- .isqle --------+
+```
+
+The v0.4 canonical state does **not** repeatedly serialize identity strings, axis keys, axis domains, relation atoms/predicates, topology method names, projection IDs, event IDs, source IDs, or proposal IDs. Those values live once in the shared registry and are referenced by positive integer IDs.
+
+JSON, Markdown, natural language and visualization remain optional inspection or import projections.
+
+## What v0.4 adds
+
+- append-only `.isqlr` machine symbol registry;
+- namespaced numeric symbol references;
+- stable registry revision and prefix hash;
+- registry-bound v0.4 `.isqln` snapshots;
+- snapshot hash over registered binary bytes;
+- materialized snapshot no longer embeds history;
+- independent `.isqle` native event stream;
+- numeric operation opcodes in the stream;
+- registered previous/next snapshot hash chain;
+- deterministic native replay;
+- Core R4 transport:
+  - `SEM/R4:DSRR`
+  - `STATE/R4:DSRR`
+  - `EXEC/R4:DSRE`
+- v0.3 self-contained binary format retained only as a migration/compatibility path.
+
+## Why registry prefix hashes matter
+
+A snapshot pins:
 
 ```text
-v0.1-v0.2 development model:
-SemanticState -> canonical JSON -> SHA-256
-
-v0.3 AI-native model:
-SemanticState -> typed native bytes (.isqln) -> SHA-256
-                         |
-                         +-> optional inspection JSON
+registry_revision
+registry_prefix_hash
 ```
 
-The canonical artifact is a deterministic, typed, versioned binary state. JSON, Markdown, natural language, graphs, and future EML renderings are projections or inspection formats.
+A newer append-only registry may still decode an older snapshot if its prefix through the pinned revision is identical.
 
-Human-readable field names are not serialized as native schema labels. Known transition operations use numeric opcodes. Fusion proposals and fusion decisions use fixed numeric layouts rather than embedding their JSON field names in the canonical byte stream.
+Therefore:
 
-## What v0.3 implements
+```text
+old state + extended compatible registry -> valid
+old state + rewritten registry prefix    -> fail closed
+```
 
-- All v0.2 finite-active spectrum, topology, uncertainty-aware fusion, replay and validation behavior.
-- AI-native binary state format `NATIVE_FORMAT_VERSION = 3`.
-- Canonical hash over native bytes, not JSON.
-- Canonical map ordering and typed primitive codec.
-- Numeric transition opcodes.
-- Numeric-layout fusion proposal and decision history.
-- `.isqln` canonical state artifacts.
-- Optional inspection JSON projection.
-- Legacy JSON `R2/DSR` bridge retained for compatibility.
-- Native Core bridge:
-  - `SEM/R3:DSRN`
-  - `STATE/R3:DSRN`
-- Digits-only Core transport of native bytes.
+This allows a shared machine symbol universe to grow without invalidating every previous state.
 
-## CLI
+## CLI: v0.4 machine path
 
-Compile inspection JSON into canonical native state:
+Build a registry from a genesis state and events:
 
 ```bash
-isql-dsr native-pack \
-  --state examples/v0.3/final_inspection.json \
-  --out state.isqln
+isql-dsr registry-build \
+  --state examples/v0.4/genesis_inspection.json \
+  --events examples/v0.4/events_inspection.json \
+  --out symbols.isqlr
 ```
 
-Inspect native state when a human-readable/debug view is needed:
+Compile registered snapshot:
 
 ```bash
-isql-dsr native-inspect --native state.isqln
+isql-dsr registered-pack \
+  --state examples/v0.4/genesis_inspection.json \
+  --registry symbols.isqlr \
+  --out genesis.isqln
 ```
 
-Hash the canonical native state:
+Compile event stream:
 
 ```bash
-isql-dsr native-hash --native state.isqln
+isql-dsr stream-pack \
+  --genesis examples/v0.4/genesis_inspection.json \
+  --events examples/v0.4/events_inspection.json \
+  --registry symbols.isqlr \
+  --out history.isqle
 ```
 
-Bridge native state directly to Core:
+Replay without embedding history into snapshots:
 
 ```bash
-isql-dsr bridge --native state.isqln --domain bundle
+isql-dsr stream-replay \
+  --genesis-native genesis.isqln \
+  --stream history.isqle \
+  --registry symbols.isqlr \
+  --out final.isqln
 ```
 
-The older JSON inspection route is still available:
+Inspect only when needed:
 
 ```bash
-isql-dsr bridge --state final_inspection.json --domain state
+isql-dsr registered-inspect --native final.isqln --registry symbols.isqlr
 ```
 
-That route is explicitly legacy `R2/DSR`, not the v0.3 canonical transport.
+Core R4 state wire:
+
+```bash
+isql-dsr bridge-r4 --native final.isqln --registry symbols.isqlr --domain state
+```
+
+Core R4 execution wire:
+
+```bash
+isql-dsr bridge-r4 \
+  --stream history.isqle \
+  --genesis-native genesis.isqln \
+  --registry symbols.isqlr \
+  --domain exec
+```
 
 ## AI-native rule
 
-The design rule is:
-
 ```text
-Native State -> Native Operations -> Native State
-      |
-      +-> Interpretation Projection (optional)
-              |
-              +-> Human Projection (optional)
+Registry refs + Native Snapshot + Native Event Stream
+                    |
+                    +-> optional interpretation adapter
+                              |
+                              +-> optional human projection
 ```
 
-“AI-native” does not mean deliberately obscure. It means the lowest layer is selected for deterministic machine composition, typing, versioning and verification rather than human readability.
+An interpretation adapter may temporarily resolve symbols when a high-level algorithm needs them. That does not make the resolved human-readable representation canonical.
 
-## Core / DSR split
+## Compatibility layers
 
-```text
-ISQL Core v0.4
-  address / registry / parser / transport / recovery
+- v0.4 canonical path: `.isqlr + registered .isqln + .isqle`.
+- v0.3 compatibility path: self-contained `.isqln`, `R3/DSRN`.
+- v0.2 compatibility path: inspection JSON, `R2/DSR`.
 
-ISQL DSR v0.3
-  native state / spectrum / topology / flow / fusion / replay
-```
+Never silently relabel one representation as another. Migrate by decode/replay/recompile.
 
-## Important migration boundary
-
-v0.2 history chains were hashed from the v0.2 canonical JSON representation. v0.3 history chains are hashed from native bytes. Therefore a non-genesis v0.2 state must not be silently relabeled as v0.3 history.
-
-History-free/genesis inspection states can be compiled with `native-pack`. Historical v0.2 chains should be migrated by replaying the source events under v0.3 so that all previous/next hashes are regenerated from native state bytes.
-
-See `docs/NATIVE_FORMAT_v0.3.md` and `AI_HANDOFF.md`.
+See `docs/NATIVE_FORMAT_v0.4.md` and `AI_HANDOFF.md`.

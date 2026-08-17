@@ -1,37 +1,97 @@
 {
-  "canonical_authority": "native .isqln bytes",
-  "core_v0.4_parser": {
-    "passed": true,
-    "sem_profile": "SEM/R3/DSRN",
-    "state_profile": "STATE/R3/DSRN"
+  "canonical_artifact_hashes": {
+    "examples/v0.4/final.isqln": "df600f7264a5274dc26496406b68d557f543e04568220dc54939d5aca41d2a72",
+    "examples/v0.4/genesis.isqln": "1208efc0e610ad80e596d9c21068b8b902922ef0e50b57e4c29be2e16ea49947",
+    "examples/v0.4/history.isqle": "0e910dcac67df941437ab716a7f2e596b8f2eda87f7f7fbc9c4a56a2ae692e1f",
+    "examples/v0.4/symbols.isqlr": "677fb0295ce4e66461911463154a496b53937e9fd6817bc0c7e1477707d87f4c"
+  },
+  "canonical_artifacts": {
+    ".isqle": "registered native event stream",
+    ".isqln": "registered materialized snapshot",
+    ".isqlr": "append-only registry"
+  },
+  "core_v04_parser": {
+    "exec": "EXEC/R4/DSRE",
+    "log": "validation/core_v04_parser.txt",
+    "sem": "SEM/R4/DSRR",
+    "state": "STATE/R4/DSRR",
+    "verified": true
   },
   "example": {
-    "forbidden_schema_labels_absent": true,
-    "history_replay_valid": true,
-    "identity": "isql:dsr:v03:demo",
-    "native_bytes": 1672,
-    "revision": 6,
-    "round_trip_exact": true,
-    "schema": "isql.dsr-native-example-summary/v0.3",
-    "state_hash": "9242145a785207b0bd51ce27da59dbbb5b10142ace1ddc9a5e3a99594af666f9"
+    "final_bytes": 310,
+    "final_hash": "df600f7264a5274dc26496406b68d557f543e04568220dc54939d5aca41d2a72",
+    "genesis_bytes": 101,
+    "genesis_hash": "1208efc0e610ad80e596d9c21068b8b902922ef0e50b57e4c29be2e16ea49947",
+    "identifier_scan": {
+      "affects": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      },
+      "depends_on": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      },
+      "graph.components": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      },
+      "machine.trace": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      },
+      "model-a": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      },
+      "ordinal": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      },
+      "risk": {
+        "event_stream": false,
+        "final_snapshot": false,
+        "genesis_snapshot": false,
+        "registry": true
+      }
+    },
+    "records": 4,
+    "registry_bytes": 318,
+    "registry_revision": 27,
+    "stream_bytes": 624
   },
   "installed_wheel_tests": {
-    "count": 51,
-    "passed": true,
-    "without_PYTHONPATH": true
+    "count": 70,
+    "failures": 0,
+    "log": "validation/installed_tests.txt",
+    "pythonpath_unset": true
   },
-  "native_format_version": 3,
-  "schema": "isql.dsr-release-validation/v0.3",
+  "legacy_compatibility": {
+    "v0.2_r2_dsr": true,
+    "v0.3_r3_dsrn": true
+  },
+  "package_files_excluding_checksums": 87,
+  "schema": "isql.dsr-release-validation/v0.4",
   "source_tests": {
-    "count": 51,
-    "passed": true
+    "count": 70,
+    "failures": 0,
+    "log": "validation/source_tests.txt"
   },
   "status": "PASS",
-  "version": "0.3.0",
-  "wheel_build": {
-    "passed": true
-  },
-  "wheel_install": {
-    "passed": true
+  "version": "0.4.0",
+  "wheel": {
+    "file": "dist/isql_dsr_runtime-0.4.0-py3-none-any.whl",
+    "sha256": "0840514395bd61290871c388a82f5f174d944d28253a4422aff3cb1891a1a8f6"
   }
 }

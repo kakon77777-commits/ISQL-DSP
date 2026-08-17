@@ -1,0 +1,137 @@
+[
+  {
+    "base_revision": 0,
+    "event_id": "evt-rel",
+    "operation": "upsert_relation",
+    "payload": {
+      "relation": {
+        "object": "database",
+        "predicate": "depends_on",
+        "subject": "service"
+      }
+    },
+    "previous_hash": "b7588a0a6e92543b384866f1d2a488eb1abc51a23104c451dcbc7b1deb9c87bd",
+    "schema": "isql.dsr-event/v0.3"
+  },
+  {
+    "base_revision": 1,
+    "event_id": "evt-fuse",
+    "operation": "fuse_proposals",
+    "payload": {
+      "axis_threshold": 0.5,
+      "proposals": [
+        {
+          "axes": [
+            {
+              "domain": "ordinal",
+              "key": "risk",
+              "resolution": 2,
+              "uncertainty": 0.1,
+              "value": {
+                "kind": "point",
+                "value": "high"
+              }
+            }
+          ],
+          "base_hash": "6ac26c92e53b4a3a2e3ede0fe9bcd289f357a7901d1a3e6ee62e8c2ba55491cd",
+          "base_revision": 1,
+          "identity": "isql:dsr:v04:demo",
+          "proposal_id": "p-a",
+          "relations": [
+            {
+              "object": "deploy",
+              "predicate": "affects",
+              "subject": "risk"
+            }
+          ],
+          "schema": "isql.dsr-proposal/v0.3",
+          "source_id": "model-a",
+          "source_weight": 1.0
+        },
+        {
+          "axes": [
+            {
+              "domain": "ordinal",
+              "key": "risk",
+              "resolution": 3,
+              "uncertainty": 0.2,
+              "value": {
+                "kind": "point",
+                "value": "high"
+              }
+            }
+          ],
+          "base_hash": "6ac26c92e53b4a3a2e3ede0fe9bcd289f357a7901d1a3e6ee62e8c2ba55491cd",
+          "base_revision": 1,
+          "identity": "isql:dsr:v04:demo",
+          "proposal_id": "p-b",
+          "relations": [
+            {
+              "object": "deploy",
+              "predicate": "affects",
+              "subject": "risk"
+            }
+          ],
+          "schema": "isql.dsr-proposal/v0.3",
+          "source_id": "model-b",
+          "source_weight": 0.9
+        },
+        {
+          "axes": [
+            {
+              "domain": "ordinal",
+              "key": "risk",
+              "resolution": 1,
+              "uncertainty": 0.4,
+              "value": {
+                "kind": "point",
+                "value": "medium"
+              }
+            }
+          ],
+          "base_hash": "6ac26c92e53b4a3a2e3ede0fe9bcd289f357a7901d1a3e6ee62e8c2ba55491cd",
+          "base_revision": 1,
+          "identity": "isql:dsr:v04:demo",
+          "proposal_id": "p-c",
+          "relations": [],
+          "schema": "isql.dsr-proposal/v0.3",
+          "source_id": "model-c",
+          "source_weight": 0.8
+        }
+      ],
+      "relation_threshold": 0.5
+    },
+    "previous_hash": "6ac26c92e53b4a3a2e3ede0fe9bcd289f357a7901d1a3e6ee62e8c2ba55491cd",
+    "schema": "isql.dsr-event/v0.3"
+  },
+  {
+    "base_revision": 2,
+    "event_id": "evt-topology",
+    "operation": "refresh_topology",
+    "payload": {
+      "methods": [
+        "graph.components",
+        "graph.cycle_rank"
+      ]
+    },
+    "previous_hash": "db2ba76a32dd5485f84adb69582ce3344f4eaa59b0f9305b6a4ea7781d64caec",
+    "schema": "isql.dsr-event/v0.3"
+  },
+  {
+    "base_revision": 3,
+    "event_id": "evt-projection",
+    "operation": "upsert_projection",
+    "payload": {
+      "projection": {
+        "media_type": "application/x-isql-machine-trace",
+        "payload": {
+          "confidence": 0.91,
+          "lane": 2
+        },
+        "projection_id": "machine.trace"
+      }
+    },
+    "previous_hash": "9d0298fb947a62e30e0a9fa984fc7cb5e3663b47b112363ca2edfb8e4345d6f6",
+    "schema": "isql.dsr-event/v0.3"
+  }
+]
