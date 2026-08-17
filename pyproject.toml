@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "isql-dsr-runtime"
+version = "0.1.0"
+description = "ISQL Dynamic Spectrum Runtime: finite-active spectra, typed relations, replayable semantic state, and Core transport bridge."
+requires-python = ">=3.11"
+authors = [{name = "Neo.K / EVEMISSLAB"}]
+
+[project.scripts]
+isql-dsr = "isql_dsr.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,21 @@
+{
+  "base_revision": 0,
+  "event_id": "e001",
+  "occurred_at": "2026-08-17T20:50:00+08:00",
+  "operation": "upsert_axis",
+  "payload": {
+    "axis": {
+      "domain": "unit_interval",
+      "key": "certainty",
+      "resolution": 2,
+      "uncertainty": 0.12,
+      "value": {
+        "kind": "interval",
+        "lower": 0.62,
+        "upper": 0.88
+      }
+    }
+  },
+  "previous_hash": "750b0cc2871805f30af764541cc38cfca3a2403b74b55635fab5c7c98fc8343c",
+  "schema": "isql.dsr-event/v0.1"
+}

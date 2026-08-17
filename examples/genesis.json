@@ -1,0 +1,14 @@
+{
+  "axes": [],
+  "context": {
+    "domain": "research",
+    "language": "zh-Hant",
+    "observer": "internal"
+  },
+  "history": [],
+  "identity": "isql:demo:adaptive-memory",
+  "projections": [],
+  "relations": [],
+  "revision": 0,
+  "schema": "isql.dsr-state/v0.1"
+}

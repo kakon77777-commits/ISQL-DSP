@@ -1,0 +1,36 @@
+{
+  "canonical_state_hash": "c2ae21b16c1d9b1ee7854d6aed389e9aef0ab606c375cddc2c2589b7bea61a4e",
+  "compileall_passed": true,
+  "core_v0_4_state_r2_compatibility": true,
+  "external_runtime_dependencies": [],
+  "installed_cli_history_validation": {
+    "checked_history_records": 6,
+    "errors": [],
+    "schema": "isql.dsr-validation/v0.1",
+    "state_hash": "c2ae21b16c1d9b1ee7854d6aed389e9aef0ab606c375cddc2c2589b7bea61a4e",
+    "valid": true
+  },
+  "installed_wheel_tests": {
+    "count": 18,
+    "passed": true
+  },
+  "python_runtime": "3.13.5",
+  "schema": "isql.dsr-release-validation/v0.1",
+  "source_cli_history_validation": {
+    "checked_history_records": 6,
+    "errors": [],
+    "schema": "isql.dsr-validation/v0.1",
+    "state_hash": "c2ae21b16c1d9b1ee7854d6aed389e9aef0ab606c375cddc2c2589b7bea61a4e",
+    "valid": true
+  },
+  "source_tests": {
+    "count": 18,
+    "passed": true
+  },
+  "version": "0.1.0",
+  "wheel": {
+    "name": "isql_dsr_runtime-0.1.0-py3-none-any.whl",
+    "sha256": "2b26ac460ac6fc61b4dc44540d33fc56ea1d7b188f4e7d5326076848b8867b7e",
+    "size_bytes": 13277
+  }
+}

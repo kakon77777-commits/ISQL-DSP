@@ -1,0 +1,23 @@
+test_core_state_envelope_preserves_full_canonical_state (test_bridge.BridgeTests.test_core_state_envelope_preserves_full_canonical_state) ... ok
+test_envelope_payload_is_valid_utf8_json_and_not_registry_id_semantics (test_bridge.BridgeTests.test_envelope_payload_is_valid_utf8_json_and_not_registry_id_semantics) ... ok
+test_canonical_bytes_are_utf8_and_hash_is_sha256_hex (test_canonical.CanonicalTests.test_canonical_bytes_are_utf8_and_hash_is_sha256_hex) ... ok
+test_canonical_json_is_independent_of_axis_input_order (test_canonical.CanonicalTests.test_canonical_json_is_independent_of_axis_input_order) ... ok
+test_apply_replay_and_bridge_commands (test_cli.CLITests.test_apply_replay_and_bridge_commands) ... ok
+test_new_and_hash_commands (test_cli.CLITests.test_new_and_hash_commands) ... ok
+test_diff_reports_semantic_changes_by_identity (test_diff_validation.DiffTests.test_diff_reports_semantic_changes_by_identity) ... ok
+test_validate_state_detects_tampered_history (test_diff_validation.ValidationTests.test_validate_state_detects_tampered_history) ... ok
+test_validate_state_replays_history_from_genesis (test_diff_validation.ValidationTests.test_validate_state_replays_history_from_genesis) ... ok
+test_state_normalizes_order_deterministically (test_model.SemanticStateTests.test_state_normalizes_order_deterministically) ... ok
+test_state_rejects_duplicate_axis_keys (test_model.SemanticStateTests.test_state_rejects_duplicate_axis_keys) ... ok
+test_state_round_trips_via_dict (test_model.SemanticStateTests.test_state_round_trips_via_dict) ... ok
+test_candidates_reject_duplicates (test_model.ValueModelTests.test_candidates_reject_duplicates) ... ok
+test_interval_rejects_reverse_bounds (test_model.ValueModelTests.test_interval_rejects_reverse_bounds) ... ok
+test_point_interval_and_candidates_have_typed_dicts (test_model.ValueModelTests.test_point_interval_and_candidates_have_typed_dicts) ... ok
+test_context_relation_projection_and_removal_operations (test_runtime.RuntimeTests.test_context_relation_projection_and_removal_operations) ... ok
+test_stale_event_fails_closed (test_runtime.RuntimeTests.test_stale_event_fails_closed) ... ok
+test_upsert_axis_increments_revision_and_records_hash_chain (test_runtime.RuntimeTests.test_upsert_axis_increments_revision_and_records_hash_chain) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.009s
+
+OK
