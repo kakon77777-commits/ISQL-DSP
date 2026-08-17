@@ -1,97 +1,180 @@
 {
-  "canonical_artifact_hashes": {
-    "examples/v0.4/final.isqln": "df600f7264a5274dc26496406b68d557f543e04568220dc54939d5aca41d2a72",
-    "examples/v0.4/genesis.isqln": "1208efc0e610ad80e596d9c21068b8b902922ef0e50b57e4c29be2e16ea49947",
-    "examples/v0.4/history.isqle": "0e910dcac67df941437ab716a7f2e596b8f2eda87f7f7fbc9c4a56a2ae692e1f",
-    "examples/v0.4/symbols.isqlr": "677fb0295ce4e66461911463154a496b53937e9fd6817bc0c7e1477707d87f4c"
-  },
-  "canonical_artifacts": {
-    ".isqle": "registered native event stream",
-    ".isqln": "registered materialized snapshot",
-    ".isqlr": "append-only registry"
-  },
-  "core_v04_parser": {
-    "exec": "EXEC/R4/DSRE",
-    "log": "validation/core_v04_parser.txt",
-    "sem": "SEM/R4/DSRR",
-    "state": "STATE/R4/DSRR",
-    "verified": true
-  },
-  "example": {
-    "final_bytes": 310,
-    "final_hash": "df600f7264a5274dc26496406b68d557f543e04568220dc54939d5aca41d2a72",
-    "genesis_bytes": 101,
-    "genesis_hash": "1208efc0e610ad80e596d9c21068b8b902922ef0e50b57e4c29be2e16ea49947",
-    "identifier_scan": {
-      "affects": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      },
-      "depends_on": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      },
-      "graph.components": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      },
-      "machine.trace": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      },
-      "model-a": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      },
-      "ordinal": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      },
-      "risk": {
-        "event_stream": false,
-        "final_snapshot": false,
-        "genesis_snapshot": false,
-        "registry": true
-      }
-    },
-    "records": 4,
-    "registry_bytes": 318,
-    "registry_revision": 27,
-    "stream_bytes": 624
-  },
-  "installed_wheel_tests": {
-    "count": 70,
-    "failures": 0,
-    "log": "validation/installed_tests.txt",
-    "pythonpath_unset": true
-  },
-  "legacy_compatibility": {
-    "v0.2_r2_dsr": true,
-    "v0.3_r3_dsrn": true
-  },
-  "package_files_excluding_checksums": 87,
-  "schema": "isql.dsr-release-validation/v0.4",
+  "schema": "isql.dsr-release-validation/v0.5",
+  "release": "0.5.0",
+  "python": "3.13.5",
+  "canonical_artifacts": [
+    ".isqlr",
+    ".isqln",
+    ".isqle",
+    ".isqlb"
+  ],
   "source_tests": {
-    "count": 70,
+    "count": 82,
     "failures": 0,
+    "status": "PASS",
     "log": "validation/source_tests.txt"
   },
-  "status": "PASS",
-  "version": "0.4.0",
-  "wheel": {
-    "file": "dist/isql_dsr_runtime-0.4.0-py3-none-any.whl",
-    "sha256": "0840514395bd61290871c388a82f5f174d944d28253a4422aff3cb1891a1a8f6"
-  }
+  "wheel_build": {
+    "status": "PASS",
+    "offline_no_build_isolation": true,
+    "log": "validation/wheel_build.txt",
+    "wheel": "dist/isql_dsr_runtime-0.5.0-py3-none-any.whl",
+    "sha256": "8c3b870d777c59bd15b785ab99ed63ceed4a20e9f3c0ed563f59a4048c4daedd",
+    "bytes": 51666
+  },
+  "fresh_install": {
+    "status": "PASS",
+    "version": "0.5.0",
+    "tests": 82,
+    "failures": 0,
+    "module_path": "/tmp/isql_dsr_v05_venv/lib/python3.13/site-packages/isql_dsr/__init__.py",
+    "pythonpath_unset": true,
+    "logs": [
+      "validation/wheel_install.txt",
+      "validation/installed_import.txt",
+      "validation/installed_tests.txt"
+    ]
+  },
+  "core_v04_parser": {
+    "sem": {
+      "domain": "SEM",
+      "resolution": "R4",
+      "control": "DSRR",
+      "digits_only": true,
+      "wire_roundtrip": true,
+      "wire_length": 518
+    },
+    "state": {
+      "domain": "STATE",
+      "resolution": "R4",
+      "control": "DSRR",
+      "digits_only": true,
+      "wire_roundtrip": true,
+      "wire_length": 550
+    },
+    "exec": {
+      "domain": "EXEC",
+      "resolution": "R4",
+      "control": "DSRE",
+      "digits_only": true,
+      "wire_roundtrip": true,
+      "wire_length": 2052
+    }
+  },
+  "examples": {
+    "schema": "isql.dsr-v0.5-example-summary",
+    "registry": {
+      "revision": 35,
+      "bytes": 353,
+      "sha256": "13bcb1ac03cd95072b92ca0b0e00655a5e076f8d2a0c5e155b61178cbbb65fc6",
+      "registry_hash": "13bcb1ac03cd95072b92ca0b0e00655a5e076f8d2a0c5e155b61178cbbb65fc6"
+    },
+    "genesis": {
+      "bytes": 56,
+      "state_hash": "84624fcc8e7c0c65dba6e239f9dbede2311ba5af22a2fd671be31b6b5e6e656e"
+    },
+    "main_stream": {
+      "records": 8,
+      "bytes": 678,
+      "sha256": "b7dd3c2d8771fb05c5813662c8b1d6ab77582fae7d17f6d9a991e1e257df9e87"
+    },
+    "final": {
+      "revision": 8,
+      "bytes": 177,
+      "state_hash": "385be6b4c70d254a746b2afed14968996adbe4e2b36d26154b81204869864b82",
+      "positive_relations": 1,
+      "negative_relations": 1,
+      "topology_descriptors": 2
+    },
+    "branches": {
+      "left": {
+        "bytes": 202,
+        "records": 1,
+        "branch_ref": 32
+      },
+      "right": {
+        "bytes": 186,
+        "records": 1,
+        "branch_ref": 33
+      },
+      "conflict-pos": {
+        "bytes": 186,
+        "records": 1,
+        "branch_ref": 34
+      },
+      "conflict-neg": {
+        "bytes": 186,
+        "records": 1,
+        "branch_ref": 35
+      }
+    },
+    "clean_merge": {
+      "bytes": 78,
+      "state_hash": "79a7545cf0ed0040e7f553bf4c48ca7ffa985a5308e7efa4b70cc576917bc514",
+      "conflicts": 0,
+      "revision": 2
+    },
+    "polarity_conflict_merge": {
+      "bytes": 56,
+      "state_hash": "425a75f26a45f76a69b969a60bc77804d788c6dd27bec416e14d09242e2d5572",
+      "conflicts": [
+        {
+          "kind": 2,
+          "key": [
+            11,
+            15,
+            9
+          ],
+          "branch_refs": [
+            34,
+            35
+          ]
+        }
+      ],
+      "contains_relation_polarity_conflict": true
+    },
+    "identifier_leak_checks": {
+      "genesis.isqln": [],
+      "history.isqle": [],
+      "final.isqln": [],
+      "left.isqlb": [],
+      "right.isqlb": [],
+      "merged.isqln": []
+    },
+    "core_r4_controls": {
+      "sem": [
+        "SEM",
+        "R4",
+        "DSRR"
+      ],
+      "state": [
+        "STATE",
+        "R4",
+        "DSRR"
+      ],
+      "exec": [
+        "EXEC",
+        "R4",
+        "DSRE"
+      ]
+    },
+    "accounting": {
+      "shared_registry_bytes": 353,
+      "main_total_excluding_decoder": 1264
+    }
+  },
+  "native_execution": {
+    "signed_relation_status": [
+      -1,
+      0,
+      1
+    ],
+    "replay_without_semantic_adapter": true,
+    "branch_artifact": ".isqlb",
+    "deterministic_three_way_merge": true,
+    "relation_polarity_conflict_code": 2,
+    "negative_fusion_votes": true
+  },
+  "human_readable_layers_are_noncanonical": true,
+  "status": "PASS"
 }

@@ -1,53 +1,36 @@
-# ISQL Dynamic Spectrum Runtime v0.4.0 — Release Notes
+# ISQL-DSR Runtime v0.5.0 Release Notes
 
-## Registered machine-space transition
+## Theme: Native Execution Semantics
 
-v0.4 moves repeated semantic identifiers out of individual snapshots/events and into a shared append-only machine symbol space.
+v0.5 moves execution below the inspection layer. Canonical stream replay now mutates registered numeric state directly.
 
 ### Added
 
-- `.isqlr` append-only namespaced symbol registry.
-- Stable positive integer symbol references.
-- Registry revision and prefix-hash verification.
-- Registered v0.4 `.isqln` snapshot format.
-- Snapshot canonical hash over registry-bound native bytes.
-- `.isqle` canonical native event-stream format.
-- Event-stream previous/next registered snapshot hash chain.
-- Deterministic stream replay.
-- Registry-aware CLI commands:
-  - `registry-build`
-  - `registered-pack`
-  - `registered-inspect`
-  - `registered-hash`
-  - `stream-pack`
-  - `stream-replay`
-  - `bridge-r4`
-- Core R4 transport:
-  - `SEM/R4:DSRR`
-  - `STATE/R4:DSRR`
-  - `EXEC/R4:DSRE`
-- `docs/NATIVE_FORMAT_v0.4.md`.
+- `NativeSemanticState.negative_relations`.
+- `deny_relation` opcode 12.
+- `retract_relation` opcode 13.
+- Direct `apply_native_event()` executor.
+- Native topology basis and graph operators.
+- Native weighted fusion without `SemanticState` materialization.
+- Positive/negative relation voting in fusion.
+- `.isqlb` branch artifact.
+- Deterministic numeric three-way branch merge.
+- Machine conflict codes.
+- `BRANCH_ID` registry namespace.
+- CLI `branch-pack` and `branch-merge`.
 
 ### Changed
 
-- Transition history is no longer canonicalized inside v0.4 materialized snapshots.
-- Repeated semantic identifiers are encoded as registry refs rather than duplicated UTF-8 strings in each artifact.
-- The shared registry becomes explicit side information and its cost can be accounted for independently.
-- v0.3 `.isqln` remains supported as a compatibility artifact but is not the v0.4 canonical form.
+- Registered state format is v5.
+- Event stream format is v5.
+- Topology basis hash is length-framed symbol-byte based rather than JSON based.
+- Built-in topology descriptors no longer carry human-readable `graph_mode` parameters in canonical state.
+- Inspection event schema advances to v0.5.
 
-### Preserved
+### Invariant
 
-- finite-active spectra;
-- typed relations;
-- topology descriptors;
-- uncertainty-aware fusion;
-- fail-closed event semantics;
-- v0.3 and v0.2 compatibility bridges.
+Canonical replay does not require a human-readable intermediate representation.
 
-### Explicit non-claims
+### Compatibility
 
-- v0.4 does not claim a universal semantic vocabulary.
-- integer symbol IDs are not meanings.
-- registry lookup is not claimed to solve synonymy/polysemy by itself.
-- the current interpretation adapter is not claimed to be final machine-native execution.
-- registry size and synchronization cost must be included in any compression claim.
+The existing Core R4 transport envelope is retained for interoperability with the supplied ISQL Core v0.4 parser. R4 is the Core transport resolution and is not the DSR release number.

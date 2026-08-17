@@ -1,65 +1,47 @@
-# ISQL DSR v0.4 — AI Handoff
+# AI_HANDOFF — ISQL-DSR Runtime v0.5.0
 
 ## Canonical rule
 
-**The v0.4 canonical machine state is the tuple of a registry-bound `.isqln` snapshot plus its compatible `.isqlr` registry prefix. Evolution history is canonicalized separately as `.isqle`.**
+Do not promote JSON, Markdown, natural language or human-readable field names back into the canonical state layer.
 
-Do not make JSON authoritative again.
-
-## Read order
-
-1. `docs/ISQL_Canonical_Anchor_v1.0_2026-08-17.md`
-2. `docs/ISQL_DSR_Implementability_Revision_v0.1_2026-08-17.md`
-3. `docs/NATIVE_FORMAT_v0.4.md`
-4. `src/isql_dsr/registry.py`
-5. `src/isql_dsr/machine.py`
-6. `src/isql_dsr/stream.py`
-7. `src/isql_dsr/bridge.py`
-8. tests
+Canonical artifacts are `.isqlr`, `.isqln`, `.isqle`, and `.isqlb`.
 
 ## Non-negotiable invariants
 
-- Human readability is not a canonical-layer requirement.
-- Registry ID is a reference, not meaning.
-- Registry is append-only; existing ID -> payload bindings must never be rewritten.
-- Snapshot and stream pin a registry revision plus prefix hash.
-- A newer compatible registry may decode an older artifact only when the pinned prefix hash matches.
-- Registered `.isqln` stores numeric references for repeated semantic identifiers.
-- `.isqln` is materialized state; `.isqle` is evolution history. Do not merge them back by default.
-- Operation names are numeric opcodes in canonical event streams.
-- Fail closed on registry, revision, previous-hash, next-hash or payload-integrity mismatch.
-- JSON / natural language / visual layouts are inspection/import projections only.
-- High-level algorithms may use an interpretation adapter when needed; the adapter output is never promoted to canonical authority merely for convenience.
-- AI/model output remains proposal input. Deterministic runtime rules own canonical transitions.
+1. Registry refs are references, not meaning itself.
+2. Registered state is bound to registry revision + prefix hash.
+3. Positive and negative relation sets are disjoint.
+4. `deny_relation` means explicit negative assertion; `retract_relation` means return to unasserted/unknown.
+5. Canonical replay must use `apply_native_event()` and must not require `inspect_registered_state()` or `runtime.apply_event()`.
+6. Native fusion and topology operate over numeric registered structures.
+7. Branch merge must be deterministic under branch-order permutation.
+8. Conflicts must be explicit; never resolve by whichever branch is processed first.
+9. `.isqlb` does not mutate the registry. Branch IDs must already exist in `BRANCH_ID` namespace.
+10. Compression/storage claims must count registry and decoder side information.
+11. Core envelope `R4` is transport compatibility with Core v0.4, not DSR version identity.
 
-## v0.4 artifacts
+## v0.5 canonical relation status
 
-### `.isqlr`
-Append-only namespaced machine symbol registry.
+For relation triple $r$:
 
-### `.isqln`
-Registered materialized snapshot. Contains registry pin and numeric refs. Does not contain transition history.
+$$
+\operatorname{status}(r)\in\{-1,0,+1\}.
+$$
 
-### `.isqle`
-Registered native event stream. Contains numeric event IDs/opcodes, operation-specific numeric layouts, and registered snapshot hash chaining.
+- `+1`: positive assertion.
+- `-1`: negative assertion.
+- `0`: no current assertion.
 
-## Core bridge
+Do not collapse `-1` and `0`.
 
-- `SEM/R4/DSRR`: registered semantic snapshot with context removed.
-- `STATE/R4/DSRR`: full registered snapshot.
-- `EXEC/R4/DSRE`: registered native event stream.
+## Branch merge scope
 
-Legacy `R3/DSRN` and `R2/DSR` remain separate compatibility paths.
+v0.5 merges numeric context, axes, relation polarity and projections. Topology is invalidated when active positive relations change. Conflicting changes retain the base value/status and emit a machine conflict.
 
-## Important v0.4 limitation
+## Next plausible frontier
 
-The deterministic replay engine currently resolves registered symbols into the established inspection-domain runtime for selected high-level semantics such as topology/fusion, then recompiles the result to registered native state. This is an **interpretation adapter**, not canonical storage. A future version may move more high-level operators directly onto numeric machine structures.
-
-## Recommended next frontier
-
-- native negative relation assertions / retractions;
-- branch and merge event streams;
-- directly numeric topology operators;
-- online registry-growth events and distributed registry reconciliation;
-- binary semantic values beyond JSON-compatible scalar/container payloads;
-- machine-native execution operators in `EXEC` rather than only replay transport.
+- Replayable merge commits as first-class native events.
+- Causal/vector-clock branch metadata for distributed multi-agent streams.
+- Native executable rules over SEM/STATE without inspection adapters.
+- Registry sharding / distributed symbol reconciliation.
+- Numeric topology operators beyond weak components/cycle rank.

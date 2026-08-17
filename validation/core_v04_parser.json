@@ -1,0 +1,26 @@
+{
+  "sem": {
+    "domain": "SEM",
+    "resolution": "R4",
+    "control": "DSRR",
+    "digits_only": true,
+    "wire_roundtrip": true,
+    "wire_length": 518
+  },
+  "state": {
+    "domain": "STATE",
+    "resolution": "R4",
+    "control": "DSRR",
+    "digits_only": true,
+    "wire_roundtrip": true,
+    "wire_length": 550
+  },
+  "exec": {
+    "domain": "EXEC",
+    "resolution": "R4",
+    "control": "DSRE",
+    "digits_only": true,
+    "wire_roundtrip": true,
+    "wire_length": 2052
+  }
+}

@@ -47,7 +47,7 @@ class CLIV04Tests(unittest.TestCase):
             packed = self.run_cli([
                 "registered-pack", "--state", str(genesis_json), "--registry", str(registry), "--out", str(genesis_native)
             ])
-            self.assertEqual(packed["schema"], "isql.dsr-registered-artifact/v0.4")
+            self.assertEqual(packed["schema"], "isql.dsr-registered-artifact/v0.5")
             self.assertTrue(genesis_native.exists())
 
             streamed = self.run_cli([

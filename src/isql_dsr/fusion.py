@@ -47,6 +47,7 @@ class SemanticProposal:
     source_weight: float = 1.0
     axes: tuple[SpectrumAxis, ...] = ()
     relations: tuple[TypedRelation, ...] = ()
+    negative_relations: tuple[TypedRelation, ...] = ()
     produced_at: str | None = None
 
     SCHEMA = "isql.dsr-proposal/v0.3"
@@ -73,6 +74,14 @@ class SemanticProposal:
         if len(set(rel_keys)) != len(rel_keys):
             raise DSRValidationError("PROPOSAL_DUPLICATE_RELATION")
         object.__setattr__(self, "relations", tuple(sorted(self.relations, key=lambda x: x.key)))
+        if not isinstance(self.negative_relations, tuple) or not all(isinstance(x, TypedRelation) for x in self.negative_relations):
+            raise DSRValidationError("PROPOSAL_NEGATIVE_RELATIONS_MUST_BE_RELATION_TUPLE")
+        neg_keys = [x.key for x in self.negative_relations]
+        if len(set(neg_keys)) != len(neg_keys):
+            raise DSRValidationError("PROPOSAL_DUPLICATE_NEGATIVE_RELATION")
+        if set(rel_keys) & set(neg_keys):
+            raise DSRValidationError("PROPOSAL_RELATION_POLARITY_CONTRADICTION")
+        object.__setattr__(self, "negative_relations", tuple(sorted(self.negative_relations, key=lambda x: x.key)))
         if self.produced_at is not None:
             object.__setattr__(self, "produced_at", _text(self.produced_at, "PROPOSAL_PRODUCED_AT_INVALID"))
 
@@ -86,6 +95,7 @@ class SemanticProposal:
         source_weight: float = 1.0,
         axes: tuple[SpectrumAxis, ...] = (),
         relations: tuple[TypedRelation, ...] = (),
+        negative_relations: tuple[TypedRelation, ...] = (),
         produced_at: str | None = None,
     ) -> "SemanticProposal":
         return cls(
@@ -97,6 +107,7 @@ class SemanticProposal:
             source_weight=source_weight,
             axes=axes,
             relations=relations,
+            negative_relations=negative_relations,
             produced_at=produced_at,
         )
 
@@ -111,6 +122,7 @@ class SemanticProposal:
             "source_weight": self.source_weight,
             "axes": [x.to_dict() for x in self.axes],
             "relations": [x.to_dict() for x in self.relations],
+            "negative_relations": [x.to_dict() for x in self.negative_relations],
         }
         if self.produced_at is not None:
             out["produced_at"] = self.produced_at
@@ -124,7 +136,8 @@ class SemanticProposal:
             raise DSRValidationError("INVALID_PROPOSAL_SCHEMA")
         axes = value.get("axes", [])
         relations = value.get("relations", [])
-        if not isinstance(axes, list) or not isinstance(relations, list):
+        negative_relations = value.get("negative_relations", [])
+        if not isinstance(axes, list) or not isinstance(relations, list) or not isinstance(negative_relations, list):
             raise DSRValidationError("PROPOSAL_COLLECTIONS_MUST_BE_LISTS")
         return cls(
             proposal_id=value.get("proposal_id"),
@@ -135,6 +148,7 @@ class SemanticProposal:
             source_weight=value.get("source_weight", 1.0),
             axes=tuple(SpectrumAxis.from_dict(x) for x in axes),
             relations=tuple(TypedRelation.from_dict(x) for x in relations),
+            negative_relations=tuple(TypedRelation.from_dict(x) for x in negative_relations),
             produced_at=value.get("produced_at"),
         )
 
@@ -163,6 +177,7 @@ class FusionDecision:
     proposal_ids: tuple[str, ...]
     axes: tuple[SpectrumAxis, ...]
     relations: tuple[TypedRelation, ...]
+    negative_relations: tuple[TypedRelation, ...]
     conflicts: tuple[FusionConflict, ...]
     axis_threshold: float
     relation_threshold: float
@@ -180,6 +195,7 @@ class FusionDecision:
             "relation_threshold": self.relation_threshold,
             "axes": [x.to_dict() for x in self.axes],
             "relations": [x.to_dict() for x in self.relations],
+            "negative_relations": [x.to_dict() for x in self.negative_relations],
             "conflicts": [x.to_dict() for x in self.conflicts],
         }
 
@@ -262,17 +278,40 @@ def fuse_proposals(
             resolution=max(axis.resolution for _, axis in winners),
         )
 
-    relation_support: dict[tuple[str, str, str], float] = {}
+    positive_support: dict[tuple[str, str, str], float] = {}
+    negative_support: dict[tuple[str, str, str], float] = {}
     relation_objects: dict[tuple[str, str, str], TypedRelation] = {}
     for proposal in ordered:
         for relation in proposal.relations:
-            relation_support[relation.key] = relation_support.get(relation.key, 0.0) + proposal.source_weight
+            positive_support[relation.key] = positive_support.get(relation.key, 0.0) + proposal.source_weight
+            relation_objects[relation.key] = relation
+        for relation in proposal.negative_relations:
+            negative_support[relation.key] = negative_support.get(relation.key, 0.0) + proposal.source_weight
             relation_objects[relation.key] = relation
     fused_relations = {relation.key: relation for relation in base_state.relations}
-    for key in sorted(relation_support):
-        ratio = relation_support[key] / total_weight
-        if ratio >= relation_threshold:
+    fused_negative = {relation.key: relation for relation in base_state.negative_relations}
+    for key in sorted(set(positive_support) | set(negative_support)):
+        pos_ratio = positive_support.get(key, 0.0) / total_weight
+        neg_ratio = negative_support.get(key, 0.0) / total_weight
+        pos_ok = pos_ratio >= relation_threshold
+        neg_ok = neg_ratio >= relation_threshold
+        if pos_ok and neg_ok:
+            conflicts.append(FusionConflict(
+                kind="relation",
+                key="|".join(key),
+                reason="POLARITY_CONFLICT",
+                candidates=(
+                    {"polarity": 1, "support_ratio": pos_ratio},
+                    {"polarity": -1, "support_ratio": neg_ratio},
+                ),
+            ))
+            continue
+        if pos_ok:
             fused_relations[key] = relation_objects[key]
+            fused_negative.pop(key, None)
+        elif neg_ok:
+            fused_negative[key] = relation_objects[key]
+            fused_relations.pop(key, None)
 
     return FusionDecision(
         identity=base_state.identity,
@@ -281,6 +320,7 @@ def fuse_proposals(
         proposal_ids=tuple(p.proposal_id for p in ordered),
         axes=tuple(sorted(fused_axes.values(), key=lambda x: x.key)),
         relations=tuple(sorted(fused_relations.values(), key=lambda x: x.key)),
+        negative_relations=tuple(sorted(fused_negative.values(), key=lambda x: x.key)),
         conflicts=tuple(conflicts),
         axis_threshold=axis_threshold,
         relation_threshold=relation_threshold,

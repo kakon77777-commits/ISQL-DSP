@@ -17,6 +17,8 @@ class StateDiff:
     changed_axes: tuple[str, ...]
     added_relations: tuple[TypedRelation, ...]
     removed_relations: tuple[TypedRelation, ...]
+    added_negative_relations: tuple[TypedRelation, ...]
+    removed_negative_relations: tuple[TypedRelation, ...]
     added_projections: tuple[str, ...]
     removed_projections: tuple[str, ...]
     changed_projections: tuple[str, ...]
@@ -34,6 +36,8 @@ class StateDiff:
                 self.changed_axes,
                 self.added_relations,
                 self.removed_relations,
+                self.added_negative_relations,
+                self.removed_negative_relations,
                 self.added_projections,
                 self.removed_projections,
                 self.changed_projections,
@@ -55,6 +59,8 @@ class StateDiff:
             "changed_axes": list(self.changed_axes),
             "added_relations": [x.to_dict() for x in self.added_relations],
             "removed_relations": [x.to_dict() for x in self.removed_relations],
+            "added_negative_relations": [x.to_dict() for x in self.added_negative_relations],
+            "removed_negative_relations": [x.to_dict() for x in self.removed_negative_relations],
             "added_projections": list(self.added_projections),
             "removed_projections": list(self.removed_projections),
             "changed_projections": list(self.changed_projections),
@@ -83,6 +89,11 @@ def diff_states(left: SemanticState, right: SemanticState) -> StateDiff:
     added_relations = tuple(right_rel[k] for k in sorted(set(right_rel) - set(left_rel)))
     removed_relations = tuple(left_rel[k] for k in sorted(set(left_rel) - set(right_rel)))
 
+    left_neg = {x.key: x for x in left.negative_relations}
+    right_neg = {x.key: x for x in right.negative_relations}
+    added_negative_relations = tuple(right_neg[k] for k in sorted(set(right_neg) - set(left_neg)))
+    removed_negative_relations = tuple(left_neg[k] for k in sorted(set(left_neg) - set(right_neg)))
+
     left_topology = {x.descriptor_id: x for x in left.topology}
     right_topology = {x.descriptor_id: x for x in right.topology}
     added_topology = tuple(sorted(set(right_topology) - set(left_topology)))
@@ -109,6 +120,8 @@ def diff_states(left: SemanticState, right: SemanticState) -> StateDiff:
         changed_axes=changed_axes,
         added_relations=added_relations,
         removed_relations=removed_relations,
+        added_negative_relations=added_negative_relations,
+        removed_negative_relations=removed_negative_relations,
         added_projections=added_projections,
         removed_projections=removed_projections,
         changed_projections=changed_projections,

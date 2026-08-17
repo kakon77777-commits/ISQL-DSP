@@ -173,8 +173,8 @@ def decode_value(data: bytes, offset: int = 0) -> tuple[JSONValue, int]:
     raise DSRValidationError("NATIVE_VALUE_TAG_UNKNOWN")
 
 # State wire constants. Layout is fixed and field-name-free.
-NATIVE_MAGIC = bytes((0xD5, 0x51, 0xA9, 0x03))
-NATIVE_FORMAT_VERSION = 3
+NATIVE_MAGIC = bytes((0xD5, 0x51, 0xA9, 0x05))
+NATIVE_FORMAT_VERSION = 5
 
 V_POINT = 0
 V_INTERVAL = 1
@@ -294,6 +294,12 @@ def encode_state(state: Any) -> bytes:
         _write_text(out, relation.predicate)
         _write_text(out, relation.object)
 
+    out += encode_uvarint(len(state.negative_relations))
+    for relation in state.negative_relations:
+        _write_text(out, relation.subject)
+        _write_text(out, relation.predicate)
+        _write_text(out, relation.object)
+
     out += encode_uvarint(len(state.topology))
     for descriptor in state.topology:
         _write_text(out, descriptor.descriptor_id)
@@ -362,6 +368,14 @@ def decode_state(data: bytes) -> Any:
         obj, offset = _read_text(data, offset)
         relations.append(TypedRelation(subject, predicate, obj))
 
+    negative_relation_count, offset = decode_uvarint(data, offset)
+    negative_relations = []
+    for _ in range(negative_relation_count):
+        subject, offset = _read_text(data, offset)
+        predicate, offset = _read_text(data, offset)
+        obj, offset = _read_text(data, offset)
+        negative_relations.append(TypedRelation(subject, predicate, obj))
+
     topology_count, offset = decode_uvarint(data, offset)
     topology = []
     for _ in range(topology_count):
@@ -411,6 +425,7 @@ def decode_state(data: bytes) -> Any:
         context=context,
         axes=tuple(axes),
         relations=tuple(relations),
+        negative_relations=tuple(negative_relations),
         topology=tuple(topology),
         projections=tuple(projections),
         history=tuple(history),
@@ -437,6 +452,8 @@ _OPERATION_CODES = {
     "upsert_topology_descriptor": 9,
     "remove_topology_descriptor": 10,
     "fuse_proposals": 11,
+    "deny_relation": 12,
+    "retract_relation": 13,
 }
 _CODE_OPERATIONS = {value: key for key, value in _OPERATION_CODES.items()}
 
@@ -581,6 +598,9 @@ def _encode_proposal_dict(value: Any) -> bytes:
     out += encode_uvarint(len(proposal.relations))
     for relation in proposal.relations:
         _write_blob(out, _encode_relation_dict(relation.to_dict()))
+    out += encode_uvarint(len(proposal.negative_relations))
+    for relation in proposal.negative_relations:
+        _write_blob(out, _encode_relation_dict(relation.to_dict()))
     out.append(1 if proposal.produced_at is not None else 0)
     if proposal.produced_at is not None:
         _write_text(out, proposal.produced_at)
@@ -615,6 +635,14 @@ def _decode_proposal_dict(data: bytes, offset: int) -> tuple[dict[str, Any], int
         if used != len(blob):
             raise DSRValidationError("NATIVE_PROPOSAL_RELATION_TRAILING_DATA")
         relations.append(TypedRelation.from_dict(relation_dict))
+    negative_count, offset = decode_uvarint(data, offset)
+    negative_relations = []
+    for _ in range(negative_count):
+        blob, offset = _read_blob(data, offset)
+        relation_dict, used = _decode_relation_dict(blob, 0)
+        if used != len(blob):
+            raise DSRValidationError("NATIVE_PROPOSAL_NEGATIVE_RELATION_TRAILING_DATA")
+        negative_relations.append(TypedRelation.from_dict(relation_dict))
     if offset >= len(data):
         raise DSRValidationError("NATIVE_PROPOSAL_TIME_FLAG_TRUNCATED")
     flag = data[offset]; offset += 1
@@ -632,6 +660,7 @@ def _decode_proposal_dict(data: bytes, offset: int) -> tuple[dict[str, Any], int
         source_weight=source_weight,
         axes=tuple(axes),
         relations=tuple(relations),
+        negative_relations=tuple(negative_relations),
         produced_at=produced_at,
     )
     return proposal.to_dict(), offset
@@ -639,7 +668,7 @@ def _decode_proposal_dict(data: bytes, offset: int) -> tuple[dict[str, Any], int
 
 _FUSION_KIND_CODES = {"axis": 1, "relation": 2}
 _FUSION_CODE_KINDS = {value: key for key, value in _FUSION_KIND_CODES.items()}
-_FUSION_REASON_CODES = {"TIED_SUPPORT": 1, "INSUFFICIENT_SUPPORT": 2}
+_FUSION_REASON_CODES = {"TIED_SUPPORT": 1, "INSUFFICIENT_SUPPORT": 2, "POLARITY_CONFLICT": 3}
 _FUSION_CODE_REASONS = {value: key for key, value in _FUSION_REASON_CODES.items()}
 
 
@@ -669,6 +698,10 @@ def _encode_fusion_result(result: Any) -> bytes:
     out += encode_uvarint(len(relations))
     for relation in relations:
         _write_blob(out, _encode_relation_dict(relation))
+    negative_relations = decision.get("negative_relations", [])
+    out += encode_uvarint(len(negative_relations))
+    for relation in negative_relations:
+        _write_blob(out, _encode_relation_dict(relation))
     conflicts = decision.get("conflicts", [])
     out += encode_uvarint(len(conflicts))
     for conflict in conflicts:
@@ -682,15 +715,24 @@ def _encode_fusion_result(result: Any) -> bytes:
         candidates = conflict.get("candidates", [])
         out += encode_uvarint(len(candidates))
         for candidate in candidates:
-            variant = candidate.get("variant", {})
-            _write_text(out, variant["domain"])
-            _write_blob(out, _encode_semantic_value(semantic_value_from_dict(variant["value"])))
-            _write_f64(out, candidate["effective_support"])
-            _write_f64(out, candidate["support_ratio"])
-            sources = candidate.get("sources", [])
-            out += encode_uvarint(len(sources))
-            for source in sources:
-                _write_text(out, source)
+            if kind == "axis":
+                out += encode_uvarint(1)
+                variant = candidate.get("variant", {})
+                _write_text(out, variant["domain"])
+                _write_blob(out, _encode_semantic_value(semantic_value_from_dict(variant["value"])))
+                _write_f64(out, candidate["effective_support"])
+                _write_f64(out, candidate["support_ratio"])
+                sources = candidate.get("sources", [])
+                out += encode_uvarint(len(sources))
+                for source in sources:
+                    _write_text(out, source)
+            else:
+                out += encode_uvarint(2)
+                polarity = candidate.get("polarity")
+                if polarity not in (-1, 1):
+                    raise DSRValidationError("NATIVE_FUSION_POLARITY_INVALID")
+                out += encode_uvarint(1 if polarity > 0 else 2)
+                _write_f64(out, candidate["support_ratio"])
     return bytes(out)
 
 
@@ -722,6 +764,12 @@ def _decode_fusion_result(data: bytes, offset: int) -> tuple[dict[str, Any], int
         blob, offset = _read_blob(data, offset); value, used = _decode_relation_dict(blob, 0)
         if used != len(blob): raise DSRValidationError("NATIVE_FUSION_RELATION_TRAILING_DATA")
         relations.append(value)
+    negative_relation_count, offset = decode_uvarint(data, offset)
+    negative_relations = []
+    for _ in range(negative_relation_count):
+        blob, offset = _read_blob(data, offset); value, used = _decode_relation_dict(blob, 0)
+        if used != len(blob): raise DSRValidationError("NATIVE_FUSION_NEGATIVE_RELATION_TRAILING_DATA")
+        negative_relations.append(value)
     conflict_count, offset = decode_uvarint(data, offset)
     conflicts = []
     for _ in range(conflict_count):
@@ -733,21 +781,30 @@ def _decode_fusion_result(data: bytes, offset: int) -> tuple[dict[str, Any], int
         candidate_count, offset = decode_uvarint(data, offset)
         candidates = []
         for _ in range(candidate_count):
-            domain, offset = _read_text(data, offset)
-            blob, offset = _read_blob(data, offset); semantic_value, used = _decode_semantic_value(blob, 0)
-            if used != len(blob): raise DSRValidationError("NATIVE_FUSION_VALUE_TRAILING_DATA")
-            effective_support, offset = _read_f64(data, offset)
-            support_ratio, offset = _read_f64(data, offset)
-            source_count, offset = decode_uvarint(data, offset)
-            sources = []
-            for _ in range(source_count):
-                source, offset = _read_text(data, offset); sources.append(source)
-            candidates.append({
-                "variant": {"domain": domain, "value": semantic_value.to_dict()},
-                "effective_support": effective_support,
-                "support_ratio": support_ratio,
-                "sources": sources,
-            })
+            candidate_type, offset = decode_uvarint(data, offset)
+            if candidate_type == 1:
+                domain, offset = _read_text(data, offset)
+                blob, offset = _read_blob(data, offset); semantic_value, used = _decode_semantic_value(blob, 0)
+                if used != len(blob): raise DSRValidationError("NATIVE_FUSION_VALUE_TRAILING_DATA")
+                effective_support, offset = _read_f64(data, offset)
+                support_ratio, offset = _read_f64(data, offset)
+                source_count, offset = decode_uvarint(data, offset)
+                sources = []
+                for _ in range(source_count):
+                    source, offset = _read_text(data, offset); sources.append(source)
+                candidates.append({
+                    "variant": {"domain": domain, "value": semantic_value.to_dict()},
+                    "effective_support": effective_support,
+                    "support_ratio": support_ratio,
+                    "sources": sources,
+                })
+            elif candidate_type == 2:
+                polarity_code, offset = decode_uvarint(data, offset)
+                if polarity_code not in (1, 2): raise DSRValidationError("NATIVE_FUSION_POLARITY_INVALID")
+                support_ratio, offset = _read_f64(data, offset)
+                candidates.append({"polarity": 1 if polarity_code == 1 else -1, "support_ratio": support_ratio})
+            else:
+                raise DSRValidationError("NATIVE_FUSION_CANDIDATE_TYPE_UNKNOWN")
         conflicts.append({
             "kind": _FUSION_CODE_KINDS[kind_code],
             "key": key,
@@ -765,6 +822,7 @@ def _decode_fusion_result(data: bytes, offset: int) -> tuple[dict[str, Any], int
         "relation_threshold": relation_threshold,
         "axes": axes,
         "relations": relations,
+        "negative_relations": negative_relations,
         "conflicts": conflicts,
     }}, offset
 
@@ -777,10 +835,10 @@ def _encode_payload(operation: str, payload: dict[str, Any]) -> bytes:
         _write_blob(out, _encode_axis_dict(payload["axis"]))
     elif operation == "remove_axis":
         _write_text(out, payload["key"])
-    elif operation == "upsert_relation":
+    elif operation in {"upsert_relation", "deny_relation", "retract_relation"}:
         _write_blob(out, _encode_relation_dict(payload["relation"]))
     elif operation == "remove_relation":
-        _write_blob(out, _encode_relation_dict(payload))
+        _write_blob(out, _encode_relation_dict(payload.get("relation", payload)))
     elif operation == "upsert_projection":
         _write_blob(out, _encode_projection_dict(payload["projection"]))
     elif operation == "remove_projection":
@@ -817,10 +875,10 @@ def _decode_payload(operation: str, data: bytes, offset: int) -> tuple[dict[str,
         return {"axis": value}, offset
     if operation == "remove_axis":
         value, offset = _read_text(data, offset); return {"key": value}, offset
-    if operation in {"upsert_relation", "remove_relation"}:
+    if operation in {"upsert_relation", "remove_relation", "deny_relation", "retract_relation"}:
         blob, offset = _read_blob(data, offset); value, used = _decode_relation_dict(blob, 0)
         if used != len(blob): raise DSRValidationError("NATIVE_RELATION_TRAILING_DATA")
-        return ({"relation": value} if operation == "upsert_relation" else value), offset
+        return ({"relation": value} if operation in {"upsert_relation", "deny_relation", "retract_relation"} else value), offset
     if operation == "upsert_projection":
         blob, offset = _read_blob(data, offset); value, used = _decode_projection_dict(blob, 0)
         if used != len(blob): raise DSRValidationError("NATIVE_PROJECTION_TRAILING_DATA")
@@ -912,7 +970,7 @@ def _decode_history_record(data: bytes, offset: int) -> tuple[dict[str, Any], in
     elif has_result != 0:
         raise DSRValidationError("NATIVE_HISTORY_RESULT_FLAG_INVALID")
     event = {
-        "schema": "isql.dsr-event/v0.3",
+        "schema": "isql.dsr-event/v0.5",
         "event_id": event_id,
         "operation": operation,
         "payload": payload,

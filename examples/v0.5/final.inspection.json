@@ -1,0 +1,54 @@
+{
+  "schema": "isql.dsr-state/v0.3",
+  "identity": "agent:research",
+  "revision": 8,
+  "context": {
+    "mode": "native"
+  },
+  "axes": [
+    {
+      "key": "risk",
+      "domain": "ordinal",
+      "value": {
+        "kind": "point",
+        "value": "high"
+      },
+      "uncertainty": 0.15,
+      "resolution": 2
+    }
+  ],
+  "relations": [
+    {
+      "subject": "evidence",
+      "predicate": "supports",
+      "object": "halt"
+    }
+  ],
+  "negative_relations": [
+    {
+      "subject": "model",
+      "predicate": "predicts",
+      "object": "risk"
+    }
+  ],
+  "topology": [
+    {
+      "descriptor_id": "graph.components",
+      "method": "graph.components",
+      "basis_hash": "1357102e06f4d67e635caa8a7b8973a74c3e6e0e4c05ecf80ad2527735074d4a",
+      "value": 1,
+      "confidence": 1.0,
+      "parameters": {}
+    },
+    {
+      "descriptor_id": "graph.cycle_rank",
+      "method": "graph.cycle_rank",
+      "basis_hash": "1357102e06f4d67e635caa8a7b8973a74c3e6e0e4c05ecf80ad2527735074d4a",
+      "value": 0,
+      "confidence": 1.0,
+      "parameters": {}
+    }
+  ],
+  "projections": [],
+  "history": []
+}

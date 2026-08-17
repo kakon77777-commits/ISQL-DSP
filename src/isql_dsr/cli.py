@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
+from .branch import NativeBranch, decode_branch, encode_branch, merge_native_branches
 from .bridge import (
     to_core_bundle, to_core_sem_envelope, to_core_state_envelope,
     to_native_core_bundle, to_native_core_sem_envelope, to_native_core_state_envelope,
@@ -23,7 +24,7 @@ from .machine import (
 from .model import SemanticState
 from .native import decode_state, encode_state
 from .registry import (
-    NativeSymbolRegistry, decode_registry, encode_registry, extend_registry_for_events,
+    NativeSymbolRegistry, SymbolNamespace, decode_registry, encode_registry, extend_registry_for_events,
     extend_registry_for_state, registry_hash,
 )
 from .runtime import apply_event, replay
@@ -71,7 +72,7 @@ def _emit(value: Any) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.4 (registered AI-native state + native event stream)")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.5 (native execution semantics + branches)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis inspection DSR state")
@@ -126,27 +127,28 @@ def build_parser() -> argparse.ArgumentParser:
     source.add_argument("--native")
     sp.add_argument("--domain", choices=("sem", "state", "bundle"), default="state")
 
-    # v0.4 registered machine path.
+    # v0.5 registered machine path.
     sp = sub.add_parser("registry-build", help="Build/extend canonical .isqlr symbol registry from inspection state and optional events")
     sp.add_argument("--state", required=True)
     sp.add_argument("--events")
     sp.add_argument("--base-registry")
     sp.add_argument("--out", required=True)
+    sp.add_argument("--branch-id", action="append", default=[])
 
-    sp = sub.add_parser("registered-pack", help="Compile inspection state into registry-bound canonical v0.4 .isqln")
+    sp = sub.add_parser("registered-pack", help="Compile inspection state into registry-bound canonical v0.5 .isqln")
     sp.add_argument("--state", required=True)
     sp.add_argument("--registry", required=True)
     sp.add_argument("--out", required=True)
 
-    sp = sub.add_parser("registered-inspect", help="Project registry-bound v0.4 .isqln into inspection JSON")
+    sp = sub.add_parser("registered-inspect", help="Project registry-bound v0.5 .isqln into inspection JSON")
     sp.add_argument("--native", required=True)
     sp.add_argument("--registry", required=True)
 
-    sp = sub.add_parser("registered-hash", help="Compute canonical v0.4 registered snapshot hash")
+    sp = sub.add_parser("registered-hash", help="Compute canonical v0.5 registered snapshot hash")
     sp.add_argument("--native", required=True)
     sp.add_argument("--registry", required=True)
 
-    sp = sub.add_parser("stream-pack", help="Compile inspection event history into canonical v0.4 .isqle")
+    sp = sub.add_parser("stream-pack", help="Compile inspection event history into canonical v0.5 .isqle")
     sp.add_argument("--genesis", required=True)
     sp.add_argument("--events", required=True)
     sp.add_argument("--registry", required=True)
@@ -155,6 +157,19 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("stream-replay", help="Replay canonical .isqle from registered genesis and emit final registered .isqln")
     sp.add_argument("--genesis-native", required=True)
     sp.add_argument("--stream", required=True)
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("branch-pack", help="Compile one forked native branch artifact (.isqlb)")
+    sp.add_argument("--branch-id", required=True)
+    sp.add_argument("--genesis", required=True)
+    sp.add_argument("--events", required=True)
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--out", required=True)
+
+    sp = sub.add_parser("branch-merge", help="Three-way merge native branch artifacts against one registered base")
+    sp.add_argument("--base-native", required=True)
+    sp.add_argument("--branch", action="append", required=True)
     sp.add_argument("--registry", required=True)
     sp.add_argument("--out", required=True)
 
@@ -263,6 +278,8 @@ def main(argv: list[str] | None = None) -> int:
             events = _read_events(args.events) if args.events else []
             if events:
                 registry = extend_registry_for_events(registry, events)
+            for branch_id in args.branch_id:
+                registry, _ = registry.intern_text(SymbolNamespace.BRANCH_ID, branch_id)
             payload = encode_registry(registry)
             Path(args.out).write_bytes(payload)
             _emit({
@@ -281,7 +298,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = encode_registered_state(state)
             Path(args.out).write_bytes(payload)
             _emit({
-                "schema": "isql.dsr-registered-artifact/v0.4",
+                "schema": "isql.dsr-registered-artifact/v0.5",
                 "identity_ref": state.identity_ref,
                 "revision": state.revision,
                 "registry_revision": state.registry_revision,
@@ -300,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "registered-hash":
             registry = _read_registry(args.registry)
             state = _read_registered(args.native, registry)
-            _emit({"schema": "isql.dsr-registered-hash/v0.4", "identity_ref": state.identity_ref, "revision": state.revision, "state_hash": registered_state_hash(state)})
+            _emit({"schema": "isql.dsr-registered-hash/v0.5", "identity_ref": state.identity_ref, "revision": state.revision, "state_hash": registered_state_hash(state)})
             return 0
 
         if args.command == "stream-pack":
@@ -309,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
             payload = encode_event_stream(stream)
             Path(args.out).write_bytes(payload)
             _emit({
-                "schema": "isql.dsr-event-stream/v0.4",
+                "schema": "isql.dsr-event-stream/v0.5",
                 "registry_revision": stream.registry_revision,
                 "registry_hash": stream.registry_hash,
                 "genesis_hash": stream.genesis_hash,
@@ -328,10 +345,52 @@ def main(argv: list[str] | None = None) -> int:
             payload = encode_registered_state(final)
             Path(args.out).write_bytes(payload)
             _emit({
-                "schema": "isql.dsr-stream-replay-result/v0.4",
+                "schema": "isql.dsr-stream-replay-result/v0.5",
                 "identity_ref": final.identity_ref,
                 "revision": final.revision,
                 "state_hash": registered_state_hash(final),
+                "bytes": len(payload),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
+        if args.command == "branch-pack":
+            registry = _read_registry(args.registry)
+            branch_ref = registry.lookup_text(SymbolNamespace.BRANCH_ID, args.branch_id)
+            if branch_ref is None:
+                raise ValueError("branch id is not present in registry")
+            genesis = _read_state(args.genesis)
+            stream = build_event_stream(genesis, _read_events(args.events), registry)
+            branch = NativeBranch(branch_ref, genesis.revision, stream.genesis_hash, stream)
+            payload = encode_branch(branch)
+            Path(args.out).write_bytes(payload)
+            _emit({
+                "schema": "isql.dsr-branch-artifact/v0.5",
+                "branch_ref": branch.branch_ref,
+                "base_revision": branch.base_revision,
+                "base_hash": branch.base_hash,
+                "records": len(branch.stream.records),
+                "bytes": len(payload),
+                "path": str(Path(args.out)),
+            })
+            return 0
+
+        if args.command == "branch-merge":
+            registry = _read_registry(args.registry)
+            base = _read_registered(args.base_native, registry)
+            branches = tuple(decode_branch(Path(path).read_bytes(), registry) for path in args.branch)
+            result = merge_native_branches(base, branches, registry)
+            payload = encode_registered_state(result.state)
+            Path(args.out).write_bytes(payload)
+            _emit({
+                "schema": "isql.dsr-branch-merge-result/v0.5",
+                "branch_refs": list(result.branch_refs),
+                "revision": result.state.revision,
+                "state_hash": registered_state_hash(result.state),
+                "conflicts": [
+                    {"kind": c.kind, "key": list(c.key), "branch_refs": list(c.branch_refs)}
+                    for c in result.conflicts
+                ],
                 "bytes": len(payload),
                 "path": str(Path(args.out)),
             })

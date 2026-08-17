@@ -1,0 +1,118 @@
+[
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-01",
+    "operation": "upsert_axis",
+    "payload": {
+      "axis": {
+        "key": "risk",
+        "domain": "ordinal",
+        "value": {
+          "kind": "point",
+          "value": "high"
+        },
+        "uncertainty": 0.15,
+        "resolution": 2
+      }
+    },
+    "base_revision": 0,
+    "previous_hash": "256e31a8f4a76cce61d036badb2fbaebb1304b3facd172d824fd8e7da71ae935"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-02",
+    "operation": "upsert_relation",
+    "payload": {
+      "relation": {
+        "subject": "plan",
+        "predicate": "supports",
+        "object": "launch"
+      }
+    },
+    "base_revision": 1,
+    "previous_hash": "ad75e57658f0dc9b3bb3e6a11d09472ef41dd8b8430acfc48e8cd04cd53a5575"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-03",
+    "operation": "deny_relation",
+    "payload": {
+      "relation": {
+        "subject": "plan",
+        "predicate": "supports",
+        "object": "launch"
+      }
+    },
+    "base_revision": 2,
+    "previous_hash": "b39d6b0b5e495537407a99d0b3f643cd7b3e1069001469cd0c12615a08198a1d"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-04",
+    "operation": "retract_relation",
+    "payload": {
+      "relation": {
+        "subject": "plan",
+        "predicate": "supports",
+        "object": "launch"
+      }
+    },
+    "base_revision": 3,
+    "previous_hash": "b9e5a42eae195ba89c1b153749a580dea5765bf3316709cddcf1492c9c83d550"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-05",
+    "operation": "upsert_relation",
+    "payload": {
+      "relation": {
+        "subject": "model",
+        "predicate": "predicts",
+        "object": "risk"
+      }
+    },
+    "base_revision": 4,
+    "previous_hash": "57b15f8d29f06aa1bb3f51427cdbfe7319a5929b1b7e4ac4ba9e228cbd07a654"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-06",
+    "operation": "deny_relation",
+    "payload": {
+      "relation": {
+        "subject": "model",
+        "predicate": "predicts",
+        "object": "risk"
+      }
+    },
+    "base_revision": 5,
+    "previous_hash": "3671bb26eaa3bada5db8dc937e5572f01b422da275453ba9a3ea60a73f2397e0"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-07",
+    "operation": "upsert_relation",
+    "payload": {
+      "relation": {
+        "subject": "evidence",
+        "predicate": "supports",
+        "object": "halt"
+      }
+    },
+    "base_revision": 6,
+    "previous_hash": "0faa5ff7dcd558f580574510f698b26923499e073c1cc6356f5d2cc40d79d97f"
+  },
+  {
+    "schema": "isql.dsr-event/v0.5",
+    "event_id": "main-08",
+    "operation": "refresh_topology",
+    "payload": {
+      "methods": [
+        "graph.components",
+        "graph.cycle_rank"
+      ]
+    },
+    "base_revision": 7,
+    "previous_hash": "eaa77be0229a9f09c62d06fab4f3f0756b07aeb29ef450f47fd7c5114dfa85af"
+  }
+]

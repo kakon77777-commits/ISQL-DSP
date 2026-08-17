@@ -10,13 +10,24 @@ from .model import SemanticState, TopologyDescriptor
 _SUPPORTED_METHODS = {"graph.components", "graph.cycle_rank"}
 
 
+def _put_blob(out: bytearray, raw: bytes) -> None:
+    out += len(raw).to_bytes(8, "big")
+    out += raw
+
+
 def topology_basis_hash(state: SemanticState) -> str:
-    payload = {
-        "schema": "isql.dsr-topology-basis/v0.2",
-        "relations": [relation.to_dict() for relation in state.relations],
-    }
-    data = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
-    return hashlib.sha256(data).hexdigest()
+    """Relation-basis hash independent of JSON rendering.
+
+    v0.5 hashes the ordered UTF-8 semantic symbols with explicit length
+    framing. Native execution can reproduce the same hash from registry bytes
+    without materializing a human-readable SemanticState.
+    """
+    out = bytearray(b"ISQL-TOPOLOGY-BASIS\x05")
+    for relation in state.relations:
+        _put_blob(out, relation.subject.encode("utf-8"))
+        _put_blob(out, relation.predicate.encode("utf-8"))
+        _put_blob(out, relation.object.encode("utf-8"))
+    return hashlib.sha256(bytes(out)).hexdigest()
 
 
 def _graph_stats(state: SemanticState) -> tuple[int, int, int]:
@@ -70,7 +81,7 @@ def compute_topology_descriptors(
             basis_hash=basis,
             value=values[method],
             confidence=1.0,
-            parameters={"graph_mode": "weak-undirected-projection"},
+            parameters={},
         )
         for method in requested
     )

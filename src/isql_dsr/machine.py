@@ -14,8 +14,8 @@ from .native import (
 from .registry import NativeSymbolRegistry, SymbolNamespace
 
 
-REGISTERED_STATE_MAGIC = bytes((0xD5, 0x51, 0xC1, 0x04))
-REGISTERED_STATE_FORMAT_VERSION = 4
+REGISTERED_STATE_MAGIC = bytes((0xD5, 0x51, 0xC1, 0x05))
+REGISTERED_STATE_FORMAT_VERSION = 5
 
 
 def _positive_ref(value: Any, error: str) -> int:
@@ -122,6 +122,7 @@ class NativeSemanticState:
     relations: tuple[NativeRelation, ...] = ()
     topology: tuple[NativeTopology, ...] = ()
     projections: tuple[NativeProjection, ...] = ()
+    negative_relations: tuple[NativeRelation, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.registry_revision, int) or isinstance(self.registry_revision, bool) or self.registry_revision < 0:
@@ -151,6 +152,14 @@ class NativeSemanticState:
         if len({x.key for x in relations}) != len(relations):
             raise DSRValidationError("MACHINE_RELATION_DUPLICATE")
         object.__setattr__(self, "relations", relations)
+        if not all(isinstance(x, NativeRelation) for x in self.negative_relations):
+            raise DSRValidationError("MACHINE_NEGATIVE_RELATIONS_INVALID")
+        negative_relations = tuple(sorted(self.negative_relations, key=lambda x: x.key))
+        if len({x.key for x in negative_relations}) != len(negative_relations):
+            raise DSRValidationError("MACHINE_NEGATIVE_RELATION_DUPLICATE")
+        if {x.key for x in relations} & {x.key for x in negative_relations}:
+            raise DSRValidationError("MACHINE_RELATION_POLARITY_CONTRADICTION")
+        object.__setattr__(self, "negative_relations", negative_relations)
         if not all(isinstance(x, NativeTopology) for x in self.topology):
             raise DSRValidationError("MACHINE_TOPOLOGY_INVALID")
         topology = tuple(sorted(self.topology, key=lambda x: x.descriptor_ref))
@@ -195,6 +204,11 @@ def compile_registered_state(state: SemanticState, registry: NativeSymbolRegistr
             _ref(registry, SymbolNamespace.PREDICATE, rel.predicate),
             _ref(registry, SymbolNamespace.ATOM, rel.object),
         ) for rel in state.relations),
+        negative_relations=tuple(NativeRelation(
+            _ref(registry, SymbolNamespace.ATOM, rel.subject),
+            _ref(registry, SymbolNamespace.PREDICATE, rel.predicate),
+            _ref(registry, SymbolNamespace.ATOM, rel.object),
+        ) for rel in state.negative_relations),
         topology=tuple(NativeTopology(
             _ref(registry, SymbolNamespace.TOPOLOGY_DESCRIPTOR, item.descriptor_id),
             _ref(registry, SymbolNamespace.TOPOLOGY_METHOD, item.method),
@@ -236,6 +250,11 @@ def inspect_registered_state(state: NativeSemanticState, registry: NativeSymbolR
             registry.resolve_text(rel.predicate_ref, SymbolNamespace.PREDICATE),
             registry.resolve_text(rel.object_ref, SymbolNamespace.ATOM),
         ) for rel in state.relations),
+        negative_relations=tuple(TypedRelation(
+            registry.resolve_text(rel.subject_ref, SymbolNamespace.ATOM),
+            registry.resolve_text(rel.predicate_ref, SymbolNamespace.PREDICATE),
+            registry.resolve_text(rel.object_ref, SymbolNamespace.ATOM),
+        ) for rel in state.negative_relations),
         topology=tuple(TopologyDescriptor(
             registry.resolve_text(item.descriptor_ref, SymbolNamespace.TOPOLOGY_DESCRIPTOR),
             registry.resolve_text(item.method_ref, SymbolNamespace.TOPOLOGY_METHOD),
@@ -307,6 +326,11 @@ def encode_registered_state(state: NativeSemanticState) -> bytes:
         out += encode_uvarint(rel.subject_ref)
         out += encode_uvarint(rel.predicate_ref)
         out += encode_uvarint(rel.object_ref)
+    out += encode_uvarint(len(state.negative_relations))
+    for rel in state.negative_relations:
+        out += encode_uvarint(rel.subject_ref)
+        out += encode_uvarint(rel.predicate_ref)
+        out += encode_uvarint(rel.object_ref)
     out += encode_uvarint(len(state.topology))
     for item in state.topology:
         out += encode_uvarint(item.descriptor_ref)
@@ -368,6 +392,13 @@ def _decode_unbound(data: bytes) -> NativeSemanticState:
         p, offset = decode_uvarint(data, offset)
         o, offset = decode_uvarint(data, offset)
         relations.append(NativeRelation(s, p, o))
+    negative_relation_count, offset = decode_uvarint(data, offset)
+    negative_relations = []
+    for _ in range(negative_relation_count):
+        s, offset = decode_uvarint(data, offset)
+        p, offset = decode_uvarint(data, offset)
+        o, offset = decode_uvarint(data, offset)
+        negative_relations.append(NativeRelation(s, p, o))
     topology_count, offset = decode_uvarint(data, offset)
     topology = []
     for _ in range(topology_count):
@@ -394,7 +425,7 @@ def _decode_unbound(data: bytes) -> NativeSemanticState:
         projections.append(NativeProjection(projection_ref, media_type_ref, payload))
     if offset != len(data):
         raise DSRValidationError("MACHINE_TRAILING_DATA")
-    state = NativeSemanticState(registry_revision, registry_hash, identity_ref, revision, tuple(context), tuple(axes), tuple(relations), tuple(topology), tuple(projections))
+    state = NativeSemanticState(registry_revision, registry_hash, identity_ref, revision, tuple(context), tuple(axes), tuple(relations), tuple(topology), tuple(projections), tuple(negative_relations))
     if encode_registered_state(state) != data:
         raise DSRValidationError("MACHINE_NONCANONICAL")
     return state
@@ -407,6 +438,10 @@ def _validate_namespaces(state: NativeSemanticState, registry: NativeSymbolRegis
         registry.resolve(axis.key_ref, SymbolNamespace.AXIS_KEY)
         registry.resolve(axis.domain_ref, SymbolNamespace.AXIS_DOMAIN)
     for rel in state.relations:
+        registry.resolve(rel.subject_ref, SymbolNamespace.ATOM)
+        registry.resolve(rel.predicate_ref, SymbolNamespace.PREDICATE)
+        registry.resolve(rel.object_ref, SymbolNamespace.ATOM)
+    for rel in state.negative_relations:
         registry.resolve(rel.subject_ref, SymbolNamespace.ATOM)
         registry.resolve(rel.predicate_ref, SymbolNamespace.PREDICATE)
         registry.resolve(rel.object_ref, SymbolNamespace.ATOM)

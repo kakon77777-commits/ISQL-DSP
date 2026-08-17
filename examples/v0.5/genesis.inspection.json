@@ -1,0 +1,14 @@
+{
+  "schema": "isql.dsr-state/v0.3",
+  "identity": "agent:research",
+  "revision": 0,
+  "context": {
+    "mode": "native"
+  },
+  "axes": [],
+  "relations": [],
+  "negative_relations": [],
+  "topology": [],
+  "projections": [],
+  "history": []
+}

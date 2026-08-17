@@ -456,6 +456,7 @@ def _native_semantic_state(state: SemanticState) -> SemanticState:
         axes=state.axes,
         relations=state.relations,
         topology=state.topology,
+        negative_relations=state.negative_relations,
         projections=state.projections,
         history=(),
     )
@@ -598,6 +599,7 @@ def _registered_semantic_state(state: Any) -> Any:
         axes=state.axes,
         relations=state.relations,
         topology=state.topology,
+        negative_relations=state.negative_relations,
         projections=state.projections,
     )
 

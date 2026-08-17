@@ -1,0 +1,31 @@
+{
+  "schema": "isql.dsr-state/v0.3",
+  "identity": "agent:research",
+  "revision": 2,
+  "context": {
+    "mode": "native"
+  },
+  "axes": [
+    {
+      "key": "urgency",
+      "domain": "ordinal",
+      "value": {
+        "kind": "point",
+        "value": "high"
+      },
+      "uncertainty": 0.05,
+      "resolution": 1
+    }
+  ],
+  "relations": [
+    {
+      "subject": "hypothesis",
+      "predicate": "supports",
+      "object": "test"
+    }
+  ],
+  "negative_relations": [],
+  "topology": [],
+  "projections": [],
+  "history": []
+}

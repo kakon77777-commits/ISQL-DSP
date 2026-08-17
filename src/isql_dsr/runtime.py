@@ -96,10 +96,21 @@ def apply_event(state: SemanticState, event: TransitionEvent) -> AppliedTransiti
     elif event.operation == "upsert_relation":
         relation = TypedRelation.from_dict(_require_payload_object(payload, "relation"))
         changes["relations"] = _replace_relation(state, relation)
+        changes["negative_relations"] = tuple(x for x in state.negative_relations if x.key != relation.key)
         changes["topology"] = ()
     elif event.operation == "remove_relation":
-        relation = TypedRelation.from_dict(payload)
+        relation = TypedRelation.from_dict(payload.get("relation", payload))
         changes["relations"] = _remove_relation(state, relation)
+        changes["topology"] = ()
+    elif event.operation == "deny_relation":
+        relation = TypedRelation.from_dict(payload.get("relation", payload))
+        changes["relations"] = tuple(x for x in state.relations if x.key != relation.key)
+        changes["negative_relations"] = tuple(x for x in state.negative_relations if x.key != relation.key) + (relation,)
+        changes["topology"] = ()
+    elif event.operation == "retract_relation":
+        relation = TypedRelation.from_dict(payload.get("relation", payload))
+        changes["relations"] = tuple(x for x in state.relations if x.key != relation.key)
+        changes["negative_relations"] = tuple(x for x in state.negative_relations if x.key != relation.key)
         changes["topology"] = ()
     elif event.operation == "refresh_topology":
         methods = payload.get("methods", ["graph.components", "graph.cycle_rank"])
@@ -135,7 +146,8 @@ def apply_event(state: SemanticState, event: TransitionEvent) -> AppliedTransiti
             raise DSRExecutionError(str(exc)) from exc
         changes["axes"] = decision.axes
         changes["relations"] = decision.relations
-        if decision.relations != state.relations:
+        changes["negative_relations"] = decision.negative_relations
+        if decision.relations != state.relations or decision.negative_relations != state.negative_relations:
             changes["topology"] = ()
         history_result = {"fusion": decision.to_dict()}
     elif event.operation == "upsert_projection":

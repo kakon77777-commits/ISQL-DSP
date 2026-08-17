@@ -26,6 +26,7 @@ class SymbolNamespace(IntEnum):
     SOURCE_ID = 11
     PROPOSAL_ID = 12
     CONTEXT_KEY = 13
+    BRANCH_ID = 14
 
 
 def _uvarint(value: int) -> bytes:
@@ -264,6 +265,8 @@ def extend_registry_for_state(registry: NativeSymbolRegistry, state: Any) -> Nat
         _collect_axis(pairs, axis)
     for relation in state.relations:
         _collect_relation(pairs, relation)
+    for relation in state.negative_relations:
+        _collect_relation(pairs, relation)
     for descriptor in state.topology:
         _collect_topology(pairs, descriptor)
     for projection in state.projections:
@@ -290,7 +293,7 @@ def extend_registry_for_events(registry: NativeSymbolRegistry, events: Iterable[
             _collect_axis(pairs, p.get("axis"))
         elif op == "remove_axis":
             _add_text(pairs, SymbolNamespace.AXIS_KEY, p.get("key"))
-        elif op in {"upsert_relation", "remove_relation"}:
+        elif op in {"upsert_relation", "remove_relation", "deny_relation", "retract_relation"}:
             _collect_relation(pairs, p.get("relation", p))
         elif op == "upsert_projection":
             _collect_projection(pairs, p.get("projection"))
@@ -316,5 +319,7 @@ def extend_registry_for_events(registry: NativeSymbolRegistry, events: Iterable[
                 for axis in proposal.axes:
                     _collect_axis(pairs, axis)
                 for relation in proposal.relations:
+                    _collect_relation(pairs, relation)
+                for relation in proposal.negative_relations:
                     _collect_relation(pairs, relation)
     return _extend(registry, pairs)

@@ -287,6 +287,7 @@ class SemanticState:
     topology: tuple[TopologyDescriptor, ...] = ()
     projections: tuple[SemanticProjection, ...] = ()
     history: tuple[dict[str, JSONValue], ...] = ()
+    negative_relations: tuple[TypedRelation, ...] = ()
 
     SCHEMA = "isql.dsr-state/v0.3"
     LEGACY_SCHEMAS = {"isql.dsr-state/v0.2"}
@@ -314,6 +315,15 @@ class SemanticState:
         if len(set(rel_keys)) != len(rel_keys):
             raise DSRValidationError("DUPLICATE_RELATION")
         object.__setattr__(self, "relations", tuple(sorted(self.relations, key=lambda x: x.key)))
+
+        if not isinstance(self.negative_relations, tuple) or not all(isinstance(x, TypedRelation) for x in self.negative_relations):
+            raise DSRValidationError("STATE_NEGATIVE_RELATIONS_MUST_BE_RELATION_TUPLE")
+        neg_keys = [x.key for x in self.negative_relations]
+        if len(set(neg_keys)) != len(neg_keys):
+            raise DSRValidationError("DUPLICATE_NEGATIVE_RELATION")
+        if set(rel_keys) & set(neg_keys):
+            raise DSRValidationError("RELATION_POLARITY_CONTRADICTION")
+        object.__setattr__(self, "negative_relations", tuple(sorted(self.negative_relations, key=lambda x: x.key)))
 
         if not isinstance(self.topology, tuple) or not all(isinstance(x, TopologyDescriptor) for x in self.topology):
             raise DSRValidationError("STATE_TOPOLOGY_MUST_BE_DESCRIPTOR_TUPLE")
@@ -348,6 +358,7 @@ class SemanticState:
             "context": self.context,
             "axes": [x.to_dict() for x in self.axes],
             "relations": [x.to_dict() for x in self.relations],
+            "negative_relations": [x.to_dict() for x in self.negative_relations],
             "topology": [x.to_dict() for x in self.topology],
             "projections": [x.to_dict() for x in self.projections],
             "history": list(self.history),
@@ -361,10 +372,11 @@ class SemanticState:
             raise DSRValidationError("INVALID_STATE_SCHEMA")
         axes = value.get("axes", [])
         relations = value.get("relations", [])
+        negative_relations = value.get("negative_relations", [])
         topology = value.get("topology", [])
         projections = value.get("projections", [])
         history = value.get("history", [])
-        if not all(isinstance(x, list) for x in (axes, relations, topology, projections, history)):
+        if not all(isinstance(x, list) for x in (axes, relations, negative_relations, topology, projections, history)):
             raise DSRValidationError("STATE_COLLECTIONS_MUST_BE_LISTS")
         context = value.get("context", {})
         if not isinstance(context, Mapping):
@@ -375,6 +387,7 @@ class SemanticState:
             context=dict(context),
             axes=tuple(SpectrumAxis.from_dict(x) for x in axes),
             relations=tuple(TypedRelation.from_dict(x) for x in relations),
+            negative_relations=tuple(TypedRelation.from_dict(x) for x in negative_relations),
             topology=tuple(TopologyDescriptor.from_dict(x) for x in topology),
             projections=tuple(SemanticProjection.from_dict(x) for x in projections),
             history=tuple(dict(x) for x in history),
