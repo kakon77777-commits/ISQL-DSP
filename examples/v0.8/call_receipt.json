@@ -1,0 +1,53 @@
+{
+  "schema": "isql.dsr-vm-transaction-result/v0.8",
+  "status": 1,
+  "program_ref": 1,
+  "base_hashes": [
+    [
+      10,
+      "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2"
+    ],
+    [
+      11,
+      "93258ebde1e09b3e98274e5eb84374cfbc2f483591fea6624f08a44229e0b422"
+    ]
+  ],
+  "final_hashes": [
+    [
+      10,
+      "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2"
+    ],
+    [
+      11,
+      "4b0533959b2b1e9524317480396c79ae24765a18aba50b2a37806c95ecb56798"
+    ]
+  ],
+  "execution_trace": [
+    [
+      1,
+      4
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      6
+    ],
+    [
+      2,
+      7
+    ]
+  ],
+  "returns": [
+    [
+      23,
+      {
+        "kind": "point",
+        "value": 5
+      }
+    ]
+  ],
+  "parallel": true
+}

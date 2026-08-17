@@ -35,12 +35,13 @@ from .program import (
 )
 
 from .vm import (
-    ALL_CAPABILITIES, BIND_DYNAMIC, BIND_EXACT, CAP_AXIS, CAP_CALL, CAP_CONTEXT, CAP_PROJECTION, CAP_RELATION, CAP_TOPOLOGY,
+    ALL_CAPABILITIES, BIND_DYNAMIC, BIND_EXACT, CAP_AXIS, CAP_AXIS_READ, CAP_CALL, CAP_CONTEXT, CAP_PROJECTION, CAP_RELATION, CAP_TOPOLOGY,
     EXECUTION_FAILED as VM_EXECUTION_FAILED, EXECUTION_SUCCESS as VM_EXECUTION_SUCCESS,
     GUARD_AXIS_ABSENT, GUARD_AXIS_PRESENT, GUARD_AXIS_VALUE_EQ, GUARD_RELATION_STATUS, GUARD_STATE_HASH_EQ,
-    NativeGuard, NativeVMProgram, VMInstruction, VMStateBinding, VMTransactionReceipt, VMTransactionResult,
-    VM_OP_CALL, VM_OP_RETURN, decode_vm_program, encode_vm_program, evaluate_guard, execute_vm_transaction,
-    guard_axis_value_eq, guard_relation_status, guard_state_hash_eq, vm_execution_order, vm_program_hash,
+    NativeGuard, NativeVMProgram, VMInstruction, VMScopedCapability, VMStateBinding, VMTransactionReceipt, VMTransactionResult,
+    VM_OP_CALL, VM_OP_LOAD_AXIS, VM_OP_RETURN, VM_OP_STORE_AXIS, decode_vm_call_payload, decode_vm_program,
+    encode_load_axis_payload, encode_store_axis_payload, encode_vm_call_payload, encode_vm_program, evaluate_guard, execute_vm_transaction,
+    guard_axis_value_eq, guard_relation_status, guard_state_hash_eq, vm_execution_batches, vm_execution_order, vm_program_hash,
 )
 
 from .machine import (
@@ -60,7 +61,7 @@ from .stream import (
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import ValidationReport, validate_state
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 __all__ = [
     "AppliedTransition", "CandidateSetValue", "CoreDomainEnvelope", "CoreEnvelopeBundle",
@@ -97,7 +98,10 @@ __all__ = [
     "CAP_CONTEXT", "CAP_PROJECTION", "CAP_RELATION", "CAP_TOPOLOGY", "VM_EXECUTION_FAILED", "VM_EXECUTION_SUCCESS",
     "GUARD_AXIS_ABSENT", "GUARD_AXIS_PRESENT", "GUARD_AXIS_VALUE_EQ", "GUARD_RELATION_STATUS", "GUARD_STATE_HASH_EQ",
     "NativeGuard", "NativeVMProgram", "VMInstruction", "VMStateBinding", "VMTransactionReceipt", "VMTransactionResult",
-    "VM_OP_CALL", "VM_OP_RETURN", "decode_vm_program", "encode_vm_program", "evaluate_guard", "execute_vm_transaction",
-    "guard_axis_value_eq", "guard_relation_status", "guard_state_hash_eq", "vm_execution_order", "vm_program_hash",
+    "VM_OP_CALL", "VM_OP_LOAD_AXIS", "VM_OP_RETURN", "VM_OP_STORE_AXIS",
+    "CAP_AXIS_READ", "VMScopedCapability", "decode_vm_call_payload", "encode_vm_call_payload",
+    "encode_load_axis_payload", "encode_store_axis_payload", "decode_vm_program", "encode_vm_program",
+    "evaluate_guard", "execute_vm_transaction", "guard_axis_value_eq", "guard_relation_status", "guard_state_hash_eq",
+    "vm_execution_batches", "vm_execution_order", "vm_program_hash",
     "topology_basis_hash", "validate_state", "__version__",
 ]

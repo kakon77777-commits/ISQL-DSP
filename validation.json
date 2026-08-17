@@ -1,8 +1,6 @@
 {
-  "version": "0.7.0",
-  "source_tests": "111/111 PASS",
-  "installed_wheel_tests": "111/111 PASS",
-  "core_v0.4_parser": "EXEC/R4/DSRV PASS exact roundtrip",
+  "release": "ISQL-DSR Runtime v0.8.0",
+  "date": "2026-08-18",
   "canonical_artifacts": [
     ".isqlr",
     ".isqln",
@@ -10,15 +8,96 @@
     ".isqlb",
     ".isqlp"
   ],
-  "vm_program_format_version": 7,
-  "rollback_exact_alpha": true,
-  "rollback_exact_beta": true,
-  "capability_denied_error": "VM_CAPABILITY_DENIED",
-  "program_identifier_leaks": {
-    "child.isqlp": [],
-    "root-commit.isqlp": [],
-    "root-rollback.isqlp": []
+  "vm_program_format_version": 8,
+  "legacy_vm_program_version_supported": 7,
+  "core_transport": "EXEC/R4/DSRV",
+  "source_tests": {
+    "passed": 135,
+    "failed": 0,
+    "command": "PYTHONPATH=src python -m unittest discover -s tests -q"
   },
-  "unicode_escape_roundtrip_used": false,
-  "human_readable_canonical_required": false
+  "installed_wheel_tests": {
+    "passed": 135,
+    "failed": 0,
+    "source": "site-packages",
+    "python": "3.13"
+  },
+  "wheel_build": {
+    "method": "python -m pip wheel . --no-deps --no-build-isolation -w dist",
+    "network_required": false
+  },
+  "wheel_sha256": "138d114391b812db747454c63c78abbc3571e95323f83d45bcbaf575a7202eb7",
+  "core_v04_parser": {
+    "accepted": true,
+    "domain": "EXEC",
+    "resolution": "R4",
+    "control": "DSRV",
+    "payload_digits_only": true,
+    "exact_roundtrip": true
+  },
+  "examples": {
+    "schema": "isql.dsr-v08-release-example/v0.8",
+    "registry_revision": 25,
+    "registry_symbols": 25,
+    "registry_bytes": 428,
+    "call": {
+      "child_program_bytes": 172,
+      "root_program_bytes": 146,
+      "alpha_genesis_hash": "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2",
+      "beta_genesis_hash": "93258ebde1e09b3e98274e5eb84374cfbc2f483591fea6624f08a44229e0b422",
+      "alpha_final_hash": "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2",
+      "beta_final_hash": "4b0533959b2b1e9524317480396c79ae24765a18aba50b2a37806c95ecb56798",
+      "argument_register_ref": 22,
+      "return_register_ref": 23,
+      "return_value": {
+        "kind": "point",
+        "value": 5
+      },
+      "beta_written_value": {
+        "kind": "point",
+        "value": 9
+      }
+    },
+    "parallel": {
+      "program_bytes": 141,
+      "batches": [
+        [
+          8,
+          9
+        ]
+      ],
+      "serial_final_hashes": [
+        [
+          14,
+          "aaf917522eb7da58753e95b72aebec47a5d3b70b3f4563b9d77f57a3ced83d9e"
+        ],
+        [
+          15,
+          "3a8268f78c01f2b5263d26c59ca48587fd4188c9fe3e59601dec0f3431f4a079"
+        ]
+      ],
+      "parallel_final_hashes": [
+        [
+          14,
+          "aaf917522eb7da58753e95b72aebec47a5d3b70b3f4563b9d77f57a3ced83d9e"
+        ],
+        [
+          15,
+          "3a8268f78c01f2b5263d26c59ca48587fd4188c9fe3e59601dec0f3431f4a079"
+        ]
+      ],
+      "bit_identical_hashes": true
+    },
+    "core": {
+      "domain": "EXEC",
+      "resolution": "R4",
+      "control": "DSRV",
+      "payload_digits_only": true
+    },
+    "human_schema_label_leaks_in_canonical_artifacts": {}
+  },
+  "canonical_math_delimiters": {
+    "forbidden_legacy_delimiters_found": false
+  },
+  "status": "PASS"
 }

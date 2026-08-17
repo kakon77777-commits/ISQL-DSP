@@ -31,6 +31,7 @@ class SymbolNamespace(IntEnum):
     INSTRUCTION_ID = 16
     STATE_SLOT_ID = 17
     CAPABILITY_ID = 18
+    REGISTER_ID = 19
 
 
 def _uvarint(value: int) -> bytes:

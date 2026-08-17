@@ -1,0 +1,61 @@
+{
+  "schema": "isql.dsr-v08-release-example/v0.8",
+  "registry_revision": 25,
+  "registry_symbols": 25,
+  "registry_bytes": 428,
+  "call": {
+    "child_program_bytes": 172,
+    "root_program_bytes": 146,
+    "alpha_genesis_hash": "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2",
+    "beta_genesis_hash": "93258ebde1e09b3e98274e5eb84374cfbc2f483591fea6624f08a44229e0b422",
+    "alpha_final_hash": "cb7c86cad19e4b92eb81198be3a2b152a86d301467e7da00eecfd55247fe81d2",
+    "beta_final_hash": "4b0533959b2b1e9524317480396c79ae24765a18aba50b2a37806c95ecb56798",
+    "argument_register_ref": 22,
+    "return_register_ref": 23,
+    "return_value": {
+      "kind": "point",
+      "value": 5
+    },
+    "beta_written_value": {
+      "kind": "point",
+      "value": 9
+    }
+  },
+  "parallel": {
+    "program_bytes": 141,
+    "batches": [
+      [
+        8,
+        9
+      ]
+    ],
+    "serial_final_hashes": [
+      [
+        14,
+        "aaf917522eb7da58753e95b72aebec47a5d3b70b3f4563b9d77f57a3ced83d9e"
+      ],
+      [
+        15,
+        "3a8268f78c01f2b5263d26c59ca48587fd4188c9fe3e59601dec0f3431f4a079"
+      ]
+    ],
+    "parallel_final_hashes": [
+      [
+        14,
+        "aaf917522eb7da58753e95b72aebec47a5d3b70b3f4563b9d77f57a3ced83d9e"
+      ],
+      [
+        15,
+        "3a8268f78c01f2b5263d26c59ca48587fd4188c9fe3e59601dec0f3431f4a079"
+      ]
+    ],
+    "bit_identical_hashes": true
+  },
+  "core": {
+    "domain": "EXEC",
+    "resolution": "R4",
+    "control": "DSRV",
+    "payload_digits_only": true
+  },
+  "human_schema_label_leaks_in_canonical_artifacts": {}
+}

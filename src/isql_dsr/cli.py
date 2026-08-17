@@ -22,7 +22,7 @@ from .machine import (
     compile_registered_state, decode_registered_state, encode_registered_state,
     inspect_registered_state, registered_state_hash,
 )
-from .model import SemanticState
+from .model import SemanticState, semantic_value_from_dict
 from .native import decode_state, encode_state
 from .registry import (
     NativeSymbolRegistry, SymbolNamespace, decode_registry, encode_registry, extend_registry_for_events,
@@ -92,12 +92,45 @@ def _parse_state_assignments(values: list[str], registry: NativeSymbolRegistry):
     return states
 
 
+def _parse_register_arguments(values: list[str], registry: NativeSymbolRegistry):
+    arguments = {}
+    for raw in values:
+        if "=" not in raw:
+            raise ValueError("--arg must use REGISTER_REF=JSON")
+        ref_text, payload = raw.split("=", 1)
+        ref = int(ref_text)
+        if ref in arguments:
+            raise ValueError("duplicate register argument")
+        registry.resolve(ref, SymbolNamespace.REGISTER_ID)
+        value = json.loads(payload)
+        if not isinstance(value, dict):
+            raise ValueError("--arg JSON must be a semantic-value object")
+        arguments[ref] = semantic_value_from_dict(value)
+    return arguments
+
+
+def _parse_scoped_capabilities(values: list[str], registry: NativeSymbolRegistry):
+    scopes = {}
+    for raw in values:
+        if "=" not in raw:
+            raise ValueError("--scope must use SLOT_REF=MASK")
+        ref_text, mask_text = raw.split("=", 1)
+        ref = int(ref_text); mask = int(mask_text)
+        if ref in scopes:
+            raise ValueError("duplicate scoped capability slot")
+        registry.resolve(ref, SymbolNamespace.STATE_SLOT_ID)
+        if mask < 0:
+            raise ValueError("scoped capability mask must be nonnegative")
+        scopes[ref] = mask
+    return scopes
+
+
 def _emit(value: Any) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.7 (guarded capability-aware multi-state native VM)")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.8 (register dataflow and deterministic parallel native VM)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis inspection DSR state")
@@ -222,12 +255,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--genesis-native", required=True)
     sp.add_argument("--program", required=True)
 
-    sp = sub.add_parser("vm-run", help="Execute v0.7 guarded/capability-aware .isqlp transaction across registered state slots")
+    sp = sub.add_parser("vm-run", help="Execute v0.8 register/scoped-capability .isqlp transaction across registered state slots")
     sp.add_argument("--registry", required=True)
     sp.add_argument("--program", required=True)
     sp.add_argument("--state", action="append", required=True, help="numeric SLOT_REF=PATH")
-    sp.add_argument("--callee", action="append", default=[], help="additional v0.7 .isqlp subprogram")
+    sp.add_argument("--callee", action="append", default=[], help="additional .isqlp subprogram")
     sp.add_argument("--capabilities", type=int, default=ALL_CAPABILITIES)
+    sp.add_argument("--scope", action="append", default=[], help="numeric SLOT_REF=CAPABILITY_MASK")
+    sp.add_argument("--arg", action="append", default=[], help="numeric REGISTER_REF=SEMANTIC_VALUE_JSON")
+    sp.add_argument("--parallel", action="store_true", help="execute hazard-free instruction batches concurrently")
     sp.add_argument("--out-dir", required=True)
 
     sp = sub.add_parser("vm-bridge", help="Export Core-parseable EXEC/R4/DSRV wire for a v0.7 VM program")
@@ -542,7 +578,12 @@ def main(argv: list[str] | None = None) -> int:
             for path in args.callee:
                 callee = _read_vm_program(path, registry)
                 library[callee.program_ref] = callee
-            result = execute_vm_transaction(states, program, registry, library, args.capabilities)
+            arguments = _parse_register_arguments(args.arg, registry)
+            scopes = _parse_scoped_capabilities(args.scope, registry) if args.scope else None
+            result = execute_vm_transaction(
+                states, program, registry, library, args.capabilities,
+                arguments=arguments, granted_scoped_capabilities=scopes, parallel=args.parallel,
+            )
             out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)
             outputs = {}
             for slot_ref, state in sorted(result.states.items()):
@@ -551,7 +592,7 @@ def main(argv: list[str] | None = None) -> int:
                 outputs[str(slot_ref)] = str(path)
             receipt = result.receipt
             _emit({
-                "schema": "isql.dsr-vm-transaction-result/v0.7",
+                "schema": "isql.dsr-vm-transaction-result/v0.8",
                 "status": receipt.status,
                 "program_ref": receipt.program_ref,
                 "base_hashes": [list(x) for x in receipt.base_hashes],
@@ -561,6 +602,8 @@ def main(argv: list[str] | None = None) -> int:
                 "failed_instruction_ref": receipt.failed_instruction_ref,
                 "error_code": receipt.error_code,
                 "rolled_back": receipt.status != 1,
+                "parallel": args.parallel,
+                "returns": [[ref, value.to_dict()] for ref, value in result.returns],
                 "outputs": outputs,
             })
             return 0
