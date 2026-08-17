@@ -1,2 +1,0 @@
-0.6.0
-/mnt/data/isql_dsr_v06_verify_venv/lib/python3.13/site-packages/isql_dsr/__init__.py

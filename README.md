@@ -1,104 +1,63 @@
-# ISQL-DSR Runtime v0.6.0
+# ISQL-DSR Runtime v0.7.0
 
-ISQL Dynamic Spectrum Runtime v0.6 is an **AI-native causal execution runtime**. Human-readable JSON is not canonical storage and is not required by the execution core.
+ISQL Dynamic Spectrum Runtime v0.7 extends the AI-native execution layer into a small guarded, capability-aware VM. Human-readable JSON remains an inspection/compiler boundary only.
 
-## Canonical authority
+## Canonical artifact family
 
-The machine path is:
+- `.isqlr` — append-only shared machine symbol registry.
+- `.isqln` — registered materialized native semantic state.
+- `.isqle` — hash-chained native transition stream.
+- `.isqlb` — causal branch artifact.
+- `.isqlp` — native program artifact. v0.6 causal programs remain valid; v0.7 adds a VM program codec with state-slot bindings, guards, capabilities and CALL/RETURN.
 
-`.isqlr -> .isqln + .isqle + .isqlp + .isqlb -> native execution / merge`
+## What v0.7 adds
 
-- `.isqlr`: append-only shared machine symbol space.
-- `.isqln`: registry-bound materialized machine state.
-- `.isqle`: hash-chained native event stream.
-- `.isqlb`: native branch/fork artifact with causal branch dependencies.
-- `.isqlp`: causal native program containing numeric instruction refs, opcodes, effect masks, dependency refs, and native payloads.
+1. **Numeric guards** evaluated directly on registered machine state.
+2. **Capability/effect permission gates** before mutation.
+3. **Synchronous native CALL/RETURN** with recursion-cycle rejection.
+4. **Multi-state atomic transactions**: every bound state commits together or all states roll back.
+5. **Exact and dynamic state-slot bindings**.
+6. **Per-state transaction receipts** with base/final hashes and numeric call trace.
+7. **Core `EXEC/R4/DSRV` transport** for v0.7 VM programs.
 
-JSON, Markdown, natural-language explanations and execution receipts are inspection projections. They are not canonical state authority.
+## Atomicity
 
-## What v0.6 adds
+For transaction state-set $S=(S_1,\ldots,S_n)$ and program $P$:
 
-- Canonical `.isqlp` program artifacts.
-- Numeric program/instruction registry namespaces.
-- Operator effect masks.
-- Instruction dependency DAGs.
-- Deterministic topological execution.
-- Atomic program execution with functional rollback.
-- Program execution receipts as non-canonical inspection output.
-- Branch-to-branch causal dependency metadata.
-- Causal merge precedence: a causally later branch can supersede an ancestor without being misclassified as concurrent conflict.
-- `EXEC/R4/DSRP` Core transport for native programs.
-- CLI `program-pack`, `program-run`, `program-bridge`.
+$$
+\operatorname{Exec}(P,S)=S'
+$$
 
-## Atomic execution
+is published only when all guards, capability checks, instructions and subprogram calls succeed. On any failure:
 
-A program is anchored to one base snapshot by revision and registered-state hash. Instructions execute on an internal immutable working state. If any instruction fails, the externally returned state is the original base state.
+$$
+\operatorname{PublishedStateSet}=S.
+$$
 
-A successful program returns the committed final machine state. A failed program returns a receipt naming the failed instruction ref and an inspection error code, while the canonical base state remains unchanged.
+No partially mutated state slot is published.
 
-## Causal programs
+## Capability model
 
-Each instruction declares numeric dependencies. Execution order is a deterministic topological order with instruction-ref tie breaking. Cycles, unknown dependencies, duplicate refs and incorrect effect masks fail closed.
+Capabilities are numeric bit masks. An instruction's required capability is canonical and derived from its machine effect. CALL additionally requires the VM call capability. A program may not declare fewer or extra direct capabilities than its instructions require.
 
-## Core compatibility
+## CLI
 
-The supplied ISQL Core v0.4 parser accepts transport resolutions `R0-R4`. Therefore program transport uses:
-
-`ISQL1:EXEC:R4:DSRP<digits>`
-
-`R4` is the Core transport resolution, not the DSR release number. `DSRP` identifies the program payload. Existing native event streams remain `EXEC/R4/DSRE`.
-
-## CLI examples
-
-Build a registry with program/instruction refs:
+Execute a v0.7 program over one or more registered state slots:
 
 ```bash
-isql-dsr registry-build --state genesis.json --events events.json \
-  --program-id deploy-program \
-  --instruction-id deploy-1 --instruction-id deploy-2 \
-  --out symbols.isqlr
+isql-dsr vm-run --registry symbols.isqlr --program root.isqlp \
+  --state 12=state-a.isqln --state 13=state-b.isqln \
+  --callee child.isqlp --out-dir result
 ```
 
-Compile state and stream:
+Export the program as a Core-compatible machine wire:
 
 ```bash
-isql-dsr registered-pack --state genesis.json --registry symbols.isqlr --out genesis.isqln
-isql-dsr stream-pack --genesis genesis.json --events events.json \
-  --registry symbols.isqlr --out history.isqle
+isql-dsr vm-bridge --registry symbols.isqlr --program root.isqlp \
+  --state 12=state-a.isqln --state 13=state-b.isqln
 ```
 
-Compile a causal program:
-
-```bash
-isql-dsr program-pack --registry symbols.isqlr \
-  --genesis-native genesis.isqln --stream history.isqle \
-  --program-id deploy-program \
-  --instruction-id deploy-1 --instruction-id deploy-2 \
-  --out deploy.isqlp
-```
-
-Execute atomically:
-
-```bash
-isql-dsr program-run --registry symbols.isqlr \
-  --genesis-native genesis.isqln --program deploy.isqlp \
-  --out final.isqln
-```
-
-Export Core wire:
-
-```bash
-isql-dsr program-bridge --registry symbols.isqlr \
-  --genesis-native genesis.isqln --program deploy.isqlp
-```
-
-Causal branch:
-
-```bash
-isql-dsr branch-pack --branch-id review --depends-on research \
-  --genesis genesis.json --events review.json \
-  --registry symbols.isqlr --out review.isqlb
-```
+The transport control is `EXEC/R4/DSRV`. `R4` is Core v0.4 transport compatibility, not the DSR version number.
 
 ## Tests
 
@@ -106,4 +65,4 @@ isql-dsr branch-pack --branch-id review --depends-on research \
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-See `docs/NATIVE_FORMAT_v0.6.md` for the byte-level program and causal branch contract.
+See `docs/NATIVE_VM_v0.7.md` for the native VM contract.

@@ -10,7 +10,7 @@ from .branch import NativeBranch, decode_branch, encode_branch, merge_native_bra
 from .bridge import (
     to_core_bundle, to_core_sem_envelope, to_core_state_envelope,
     to_native_core_bundle, to_native_core_sem_envelope, to_native_core_state_envelope,
-    to_registered_core_exec_envelope, to_registered_core_program_envelope,
+    to_registered_core_exec_envelope, to_registered_core_program_envelope, to_registered_core_vm_envelope,
     to_registered_core_sem_envelope, to_registered_core_state_envelope,
 )
 from .canonical import state_hash
@@ -30,6 +30,7 @@ from .registry import (
 )
 from .runtime import apply_event, replay
 from .program import decode_program, encode_program, execute_native_program, program_from_stream
+from .vm import ALL_CAPABILITIES, decode_vm_program, encode_vm_program, execute_vm_transaction
 from .stream import build_event_stream, decode_event_stream, encode_event_stream, replay_native_stream
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import validate_state
@@ -73,12 +74,30 @@ def _read_program(path: str, registry: NativeSymbolRegistry):
     return decode_program(Path(path).read_bytes(), registry)
 
 
+def _read_vm_program(path: str, registry: NativeSymbolRegistry):
+    return decode_vm_program(Path(path).read_bytes(), registry)
+
+
+def _parse_state_assignments(values: list[str], registry: NativeSymbolRegistry):
+    states = {}
+    for raw in values:
+        if "=" not in raw:
+            raise ValueError("--state must use SLOT_REF=PATH")
+        slot_text, path = raw.split("=", 1)
+        slot_ref = int(slot_text)
+        if slot_ref in states:
+            raise ValueError("duplicate state slot")
+        registry.resolve(slot_ref, SymbolNamespace.STATE_SLOT_ID)
+        states[slot_ref] = _read_registered(path, registry)
+    return states
+
+
 def _emit(value: Any) -> None:
     print(json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2, allow_nan=False))
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.6 (causal native programs + atomic transactions)")
+    p = argparse.ArgumentParser(prog="isql-dsr", description="ISQL Dynamic Spectrum Runtime v0.7 (guarded capability-aware multi-state native VM)")
     sub = p.add_subparsers(dest="command", required=True)
 
     sp = sub.add_parser("new", help="Create a genesis inspection DSR state")
@@ -142,6 +161,8 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--branch-id", action="append", default=[])
     sp.add_argument("--program-id", action="append", default=[])
     sp.add_argument("--instruction-id", action="append", default=[])
+    sp.add_argument("--state-slot-id", action="append", default=[])
+    sp.add_argument("--capability-id", action="append", default=[])
 
     sp = sub.add_parser("registered-pack", help="Compile inspection state into registry-bound canonical v0.5 .isqln")
     sp.add_argument("--state", required=True)
@@ -200,6 +221,19 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--registry", required=True)
     sp.add_argument("--genesis-native", required=True)
     sp.add_argument("--program", required=True)
+
+    sp = sub.add_parser("vm-run", help="Execute v0.7 guarded/capability-aware .isqlp transaction across registered state slots")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--program", required=True)
+    sp.add_argument("--state", action="append", required=True, help="numeric SLOT_REF=PATH")
+    sp.add_argument("--callee", action="append", default=[], help="additional v0.7 .isqlp subprogram")
+    sp.add_argument("--capabilities", type=int, default=ALL_CAPABILITIES)
+    sp.add_argument("--out-dir", required=True)
+
+    sp = sub.add_parser("vm-bridge", help="Export Core-parseable EXEC/R4/DSRV wire for a v0.7 VM program")
+    sp.add_argument("--registry", required=True)
+    sp.add_argument("--program", required=True)
+    sp.add_argument("--state", action="append", required=True, help="numeric SLOT_REF=PATH")
 
     sp = sub.add_parser("bridge-r4", help="Export Core-parseable R4 registered state/semantic or native execution stream wire")
     sp.add_argument("--registry", required=True)
@@ -312,6 +346,10 @@ def main(argv: list[str] | None = None) -> int:
                 registry, _ = registry.intern_text(SymbolNamespace.PROGRAM_ID, program_id)
             for instruction_id in args.instruction_id:
                 registry, _ = registry.intern_text(SymbolNamespace.INSTRUCTION_ID, instruction_id)
+            for state_slot_id in args.state_slot_id:
+                registry, _ = registry.intern_text(SymbolNamespace.STATE_SLOT_ID, state_slot_id)
+            for capability_id in args.capability_id:
+                registry, _ = registry.intern_text(SymbolNamespace.CAPABILITY_ID, capability_id)
             payload = encode_registry(registry)
             Path(args.out).write_bytes(payload)
             _emit({
@@ -494,6 +532,44 @@ def main(argv: list[str] | None = None) -> int:
             genesis = _read_registered(args.genesis_native, registry)
             program = _read_program(args.program, registry)
             _emit(to_registered_core_program_envelope(program, genesis).to_dict())
+            return 0
+
+        if args.command == "vm-run":
+            registry = _read_registry(args.registry)
+            program = _read_vm_program(args.program, registry)
+            states = _parse_state_assignments(args.state, registry)
+            library = {}
+            for path in args.callee:
+                callee = _read_vm_program(path, registry)
+                library[callee.program_ref] = callee
+            result = execute_vm_transaction(states, program, registry, library, args.capabilities)
+            out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)
+            outputs = {}
+            for slot_ref, state in sorted(result.states.items()):
+                path = out_dir / f"{slot_ref}.isqln"
+                path.write_bytes(encode_registered_state(state))
+                outputs[str(slot_ref)] = str(path)
+            receipt = result.receipt
+            _emit({
+                "schema": "isql.dsr-vm-transaction-result/v0.7",
+                "status": receipt.status,
+                "program_ref": receipt.program_ref,
+                "base_hashes": [list(x) for x in receipt.base_hashes],
+                "final_hashes": [list(x) for x in receipt.final_hashes],
+                "execution_trace": [list(x) for x in receipt.execution_trace],
+                "failed_program_ref": receipt.failed_program_ref,
+                "failed_instruction_ref": receipt.failed_instruction_ref,
+                "error_code": receipt.error_code,
+                "rolled_back": receipt.status != 1,
+                "outputs": outputs,
+            })
+            return 0
+
+        if args.command == "vm-bridge":
+            registry = _read_registry(args.registry)
+            program = _read_vm_program(args.program, registry)
+            states = _parse_state_assignments(args.state, registry)
+            _emit(to_registered_core_vm_envelope(program, states).to_dict())
             return 0
 
         if args.command == "bridge-r4":

@@ -1,4 +1,4 @@
-"""ISQL Dynamic Spectrum Runtime v0.6 — causal native programs and atomic transactions."""
+"""ISQL Dynamic Spectrum Runtime v0.7 — guarded capability-aware multi-state native VM."""
 
 from .branch import (
     NativeBranch, NativeMergeConflict, NativeMergeResult, decode_branch, encode_branch, merge_native_branches,
@@ -11,7 +11,7 @@ from .bridge import (
     to_core_bundle, to_core_sem_envelope, to_core_state_envelope,
     to_native_core_bundle, to_native_core_sem_envelope, to_native_core_state_envelope,
     RegisteredCoreEnvelope, to_registered_core_exec_envelope, to_registered_core_program_envelope,
-    to_registered_core_sem_envelope, to_registered_core_state_envelope,
+    to_registered_core_sem_envelope, to_registered_core_state_envelope, to_registered_core_vm_envelope,
 )
 from .canonical import canonical_bytes, canonical_json, inspection_json, state_hash
 from .diff import StateDiff, diff_states
@@ -34,6 +34,15 @@ from .program import (
     execute_native_program, operator_effect_mask, program_execution_order, program_from_stream, program_hash,
 )
 
+from .vm import (
+    ALL_CAPABILITIES, BIND_DYNAMIC, BIND_EXACT, CAP_AXIS, CAP_CALL, CAP_CONTEXT, CAP_PROJECTION, CAP_RELATION, CAP_TOPOLOGY,
+    EXECUTION_FAILED as VM_EXECUTION_FAILED, EXECUTION_SUCCESS as VM_EXECUTION_SUCCESS,
+    GUARD_AXIS_ABSENT, GUARD_AXIS_PRESENT, GUARD_AXIS_VALUE_EQ, GUARD_RELATION_STATUS, GUARD_STATE_HASH_EQ,
+    NativeGuard, NativeVMProgram, VMInstruction, VMStateBinding, VMTransactionReceipt, VMTransactionResult,
+    VM_OP_CALL, VM_OP_RETURN, decode_vm_program, encode_vm_program, evaluate_guard, execute_vm_transaction,
+    guard_axis_value_eq, guard_relation_status, guard_state_hash_eq, vm_execution_order, vm_program_hash,
+)
+
 from .machine import (
     NativeAxis, NativeProjection, NativeRelation, NativeSemanticState, NativeTopology,
     compile_registered_state, decode_registered_state, encode_registered_state,
@@ -51,7 +60,7 @@ from .stream import (
 from .topology import compute_topology_descriptors, topology_basis_hash
 from .validation import ValidationReport, validate_state
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 __all__ = [
     "AppliedTransition", "CandidateSetValue", "CoreDomainEnvelope", "CoreEnvelopeBundle",
@@ -84,5 +93,11 @@ __all__ = [
     "ProgramExecutionReceipt", "ProgramExecutionResult", "apply_native_operation",
     "decode_program", "encode_program", "execute_native_program", "operator_effect_mask",
     "program_execution_order", "program_from_stream", "program_hash", "to_registered_core_program_envelope",
+    "to_registered_core_vm_envelope", "ALL_CAPABILITIES", "BIND_DYNAMIC", "BIND_EXACT", "CAP_AXIS", "CAP_CALL",
+    "CAP_CONTEXT", "CAP_PROJECTION", "CAP_RELATION", "CAP_TOPOLOGY", "VM_EXECUTION_FAILED", "VM_EXECUTION_SUCCESS",
+    "GUARD_AXIS_ABSENT", "GUARD_AXIS_PRESENT", "GUARD_AXIS_VALUE_EQ", "GUARD_RELATION_STATUS", "GUARD_STATE_HASH_EQ",
+    "NativeGuard", "NativeVMProgram", "VMInstruction", "VMStateBinding", "VMTransactionReceipt", "VMTransactionResult",
+    "VM_OP_CALL", "VM_OP_RETURN", "decode_vm_program", "encode_vm_program", "evaluate_guard", "execute_vm_transaction",
+    "guard_axis_value_eq", "guard_relation_status", "guard_state_hash_eq", "vm_execution_order", "vm_program_hash",
     "topology_basis_hash", "validate_state", "__version__",
 ]

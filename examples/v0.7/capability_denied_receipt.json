@@ -1,0 +1,28 @@
+{
+  "status": 2,
+  "program_ref": 2,
+  "base_hashes": [
+    [
+      10,
+      "e9204b1aaf8f170e2c38a0b5388b19955245bebe67777982404eb151ddf64048"
+    ],
+    [
+      11,
+      "19b017b856c1738eea2f338167d0822788eb258ad554f7f94fef8540bd6c980c"
+    ]
+  ],
+  "final_hashes": [
+    [
+      10,
+      "e9204b1aaf8f170e2c38a0b5388b19955245bebe67777982404eb151ddf64048"
+    ],
+    [
+      11,
+      "19b017b856c1738eea2f338167d0822788eb258ad554f7f94fef8540bd6c980c"
+    ]
+  ],
+  "execution_trace": [],
+  "failed_program_ref": 2,
+  "failed_instruction_ref": 0,
+  "error_code": "VM_CAPABILITY_DENIED"
+}

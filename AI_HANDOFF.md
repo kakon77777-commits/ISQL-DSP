@@ -1,48 +1,40 @@
-# AI_HANDOFF — ISQL-DSR Runtime v0.6.0
+# AI_HANDOFF — ISQL-DSR Runtime v0.7.0
 
 ## Canonical rule
 
-Do not promote JSON, Markdown, natural language, receipt text, or human-readable field names into the canonical machine layer.
+Do not promote JSON, Markdown, natural-language labels or inspection field names into the canonical machine layer. `.isqlr/.isqln/.isqle/.isqlb/.isqlp` are canonical artifacts.
 
-Canonical artifacts are `.isqlr`, `.isqln`, `.isqle`, `.isqlb`, and `.isqlp`.
+## v0.7 invariants
 
-## Non-negotiable invariants
+1. v0.6 native programs remain valid; v0.7 VM programs are an additional `.isqlp` codec.
+2. VM state slots are numeric registry refs in `STATE_SLOT_ID`.
+3. Guards are evaluated directly against `NativeSemanticState`; no inspection-state conversion is required.
+4. Every instruction has an exact canonical effect mask and required capability mask.
+5. Missing capabilities fail before publishing state mutations.
+6. Root multi-state bindings may be exact; synchronous callees must currently use one dynamic binding.
+7. CALL is synchronous. Recursive call cycles fail closed.
+8. RETURN is terminal and may not have downstream instructions.
+9. A multi-state transaction publishes every resulting slot together or returns the original state-set unchanged.
+10. Transaction receipts are runtime outputs, not a new canonical persistence format in v0.7.
+11. Core `R4` remains transport resolution. `DSRV` identifies the v0.7 VM payload family.
+12. Registry/decoder side information must be counted in compression claims.
 
-1. Registry refs are references, not meaning itself.
-2. Registered snapshots are bound to registry revision + prefix hash.
-3. Positive and negative relation sets are disjoint.
-4. Native replay and program execution must not require `SemanticState` materialization.
-5. `.isqlp` instruction opcodes and effect masks are numeric and must agree exactly.
-6. Program dependency graphs must be acyclic and closed over the program instruction set.
-7. Program execution is atomic at publication boundary: failure returns the original base state.
-8. A program is anchored to base revision + registered-state hash.
-9. Program execution order is deterministic topological order with numeric ref tie-breaks.
-10. `.isqlb` causal dependencies form a DAG. Missing dependencies and cycles fail closed.
-11. Merge conflicts are emitted only among causally incomparable maximal changes; a dependent branch may supersede its ancestor.
-12. `.isqlp` and `.isqlb` do not mutate the registry. Required refs must already exist.
-13. Compression/storage claims must count registry, program, stream and decoder side information.
-14. Core envelope `R4` is transport compatibility with Core v0.4, not DSR release identity.
-15. `DSRE` means event-stream payload; `DSRP` means causal-program payload.
+## Current guard family
 
-## v0.6 execution model
+- state-hash equality;
+- axis present;
+- axis absent;
+- axis semantic-value equality;
+- relation polarity equality in $\{-1,0,+1\}$.
 
-Program:
+## Current capability family
 
-`base state + causal instruction DAG -> internal working states -> commit OR rollback`
+Context, axis, relation, projection, topology and CALL capabilities are numeric bit masks. Do not replace them with human-readable permission strings in canonical programs.
 
-A failed instruction may have predecessors that executed internally, but those intermediate states are never returned as the committed result.
+## Next frontier
 
-Execution receipts are inspection outputs. They may contain a human-readable error code for debugging, but that string is not canonical machine state.
-
-## Branch causality
-
-`depends_on` is numeric causal metadata, not a human workflow note. During merge, only causally maximal changes participate in conflict selection. Two incomparable maximal branches that disagree still produce an explicit machine conflict.
-
-## Next plausible frontier
-
-- Conditional guards / preconditions encoded as native predicates.
-- Reusable subprograms and call/return semantics.
-- Program receipts as optional binary audit artifacts.
-- Transaction groups across multiple identities/states.
-- Capability/effect permissions and sandboxed operator sets.
-- Distributed registry reconciliation and signed program provenance.
+- explicit value-return registers / arguments between subprograms;
+- capability tokens scoped to state slots or object subsets;
+- cross-state read/write operators;
+- deterministic scheduling for parallel independent instructions;
+- persistent transaction receipts / attestations only if an actual use case requires them.

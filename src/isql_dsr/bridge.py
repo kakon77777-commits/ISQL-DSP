@@ -520,7 +520,7 @@ class RegisteredCoreEnvelope:
         if self.resolution != "R4":
             raise DSRValidationError("REGISTERED_CORE_RESOLUTION_INVALID")
         if self.domain == "EXEC":
-            if self.control not in {"DSRE", "DSRP"}:
+            if self.control not in {"DSRE", "DSRP", "DSRV"}:
                 raise DSRValidationError("REGISTERED_CORE_CONTROL_INVALID")
         elif self.control != "DSRR":
             raise DSRValidationError("REGISTERED_CORE_CONTROL_INVALID")
@@ -694,4 +694,55 @@ def to_registered_core_exec_envelope(stream: Any, genesis: Any) -> RegisteredCor
         content_hash=hashlib.sha256(payload).hexdigest(),
         payload_digits=encode_decimal_bytes(payload),
         control="DSRE",
+    )
+
+
+
+def _vm_state_set_hash(program: Any, states: Mapping[int, Any]) -> str:
+    from .machine import NativeSemanticState, registered_state_hash
+    from .native import encode_uvarint
+    from .vm import NativeVMProgram, BIND_EXACT
+    if not isinstance(program, NativeVMProgram):
+        raise TypeError("program must be NativeVMProgram")
+    out = bytearray(b"ISQLDSRVMBASE7")
+    for binding in program.bindings:
+        if binding.slot_ref not in states:
+            raise DSRValidationError("REGISTERED_CORE_VM_STATE_SLOT_MISSING")
+        state = states[binding.slot_ref]
+        if not isinstance(state, NativeSemanticState):
+            raise TypeError("states must contain NativeSemanticState")
+        digest = registered_state_hash(state)
+        if binding.binding_mode == BIND_EXACT:
+            if binding.base_revision != state.revision:
+                raise DSRValidationError("REGISTERED_CORE_VM_BINDING_REVISION_MISMATCH")
+            if binding.base_hash != digest:
+                raise DSRValidationError("REGISTERED_CORE_VM_BINDING_HASH_MISMATCH")
+        out += encode_uvarint(binding.slot_ref)
+        out += bytes.fromhex(digest)
+    return hashlib.sha256(bytes(out)).hexdigest()
+
+
+def to_registered_core_vm_envelope(program: Any, states: Mapping[int, Any]) -> RegisteredCoreEnvelope:
+    from .machine import NativeSemanticState
+    from .vm import NativeVMProgram, encode_vm_program
+    if not isinstance(program, NativeVMProgram):
+        raise TypeError("program must be NativeVMProgram")
+    if not isinstance(states, Mapping):
+        raise TypeError("states must be a mapping")
+    primary = program.bindings[0]
+    if primary.slot_ref not in states or not isinstance(states[primary.slot_ref], NativeSemanticState):
+        raise DSRValidationError("REGISTERED_CORE_VM_PRIMARY_STATE_MISSING")
+    anchor = states[primary.slot_ref]
+    base_set_hash = _vm_state_set_hash(program, states)
+    payload = encode_vm_program(program)
+    return RegisteredCoreEnvelope(
+        domain="EXEC",
+        identity_ref=anchor.identity_ref,
+        revision=anchor.revision,
+        registry_revision=program.registry_revision,
+        registry_hash=program.registry_hash,
+        state_hash=base_set_hash,
+        content_hash=hashlib.sha256(payload).hexdigest(),
+        payload_digits=encode_decimal_bytes(payload),
+        control="DSRV",
     )

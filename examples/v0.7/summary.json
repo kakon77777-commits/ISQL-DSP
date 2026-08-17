@@ -1,0 +1,22 @@
+{
+  "registry_revision": 18,
+  "registry_bytes": 246,
+  "state_alpha_genesis_bytes": 61,
+  "state_beta_genesis_bytes": 61,
+  "child_program_bytes": 99,
+  "commit_program_bytes": 142,
+  "rollback_program_bytes": 142,
+  "commit_status": 1,
+  "rollback_status": 2,
+  "rollback_exact_alpha": true,
+  "rollback_exact_beta": true,
+  "capability_denied_status": 2,
+  "capability_denied_error": "VM_CAPABILITY_DENIED",
+  "core_control": "DSRV",
+  "program_identifier_leaks": {
+    "child.isqlp": [],
+    "root-commit.isqlp": [],
+    "root-rollback.isqlp": []
+  },
+  "commit_program_sha256": "73894a6534dc7d42ec000ec06a6c669cf37a9048ea3f4e64b5a56d7ab9b2efa8"
+}

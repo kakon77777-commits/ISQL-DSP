@@ -1,5 +1,8 @@
 {
-  "atomic_rollback_verified": true,
+  "version": "0.7.0",
+  "source_tests": "111/111 PASS",
+  "installed_wheel_tests": "111/111 PASS",
+  "core_v0.4_parser": "EXEC/R4/DSRV PASS exact roundtrip",
   "canonical_artifacts": [
     ".isqlr",
     ".isqln",
@@ -7,91 +10,15 @@
     ".isqlb",
     ".isqlp"
   ],
-  "core_transport_resolution": "R4",
-  "core_v04_parser": {
-    "exec_program": {
-      "control": "DSRP",
-      "domain": "EXEC",
-      "payload_digits_only": true,
-      "resolution": "R4",
-      "round_trip_equal": true
-    },
-    "exec_stream": {
-      "control": "DSRE",
-      "domain": "EXEC",
-      "payload_digits_only": true,
-      "resolution": "R4",
-      "round_trip_equal": true
-    },
-    "sem": {
-      "control": "DSRR",
-      "domain": "SEM",
-      "payload_digits_only": true,
-      "resolution": "R4",
-      "round_trip_equal": true
-    },
-    "state": {
-      "control": "DSRR",
-      "domain": "STATE",
-      "payload_digits_only": true,
-      "resolution": "R4",
-      "round_trip_equal": true
-    }
+  "vm_program_format_version": 7,
+  "rollback_exact_alpha": true,
+  "rollback_exact_beta": true,
+  "capability_denied_error": "VM_CAPABILITY_DENIED",
+  "program_identifier_leaks": {
+    "child.isqlp": [],
+    "root-commit.isqlp": [],
+    "root-rollback.isqlp": []
   },
-  "example": {
-    "causal_merge_conflicts": 0,
-    "causal_merge_risk": {
-      "kind": "point",
-      "value": 5
-    },
-    "concurrent_conflicts": 1,
-    "core_program_wire_prefix": "ISQL1:EXEC:R4:DSRP21",
-    "genesis_bytes": 56,
-    "identifier_leaks": {
-      "causal-merged.isqln": [],
-      "deploy-final.isqln": [],
-      "deploy.isqlp": [],
-      "genesis.isqln": [],
-      "history.isqle": [],
-      "parallel.isqlb": [],
-      "research.isqlb": [],
-      "review.isqlb": [],
-      "rollback-result.isqln": [],
-      "rollback.isqlp": []
-    },
-    "program_bytes": 115,
-    "program_final_bytes": 122,
-    "registry_bytes": 280,
-    "registry_revision": 26,
-    "rollback_exact_base": true,
-    "rollback_program_bytes": 103,
-    "rollback_result_bytes": 56,
-    "rollback_status": 2,
-    "schema": "isql.dsr-v0.6-example-summary/v0.6",
-    "stream_bytes": 303,
-    "success_status": 1
-  },
-  "installed_import": [
-    "0.6.0",
-    "/mnt/data/isql_dsr_v06_verify_venv/lib/python3.13/site-packages/isql_dsr/__init__.py"
-  ],
-  "installed_tests": {
-    "count": 96,
-    "log": "validation/installed_tests.txt",
-    "status": "PASS"
-  },
-  "program_control": "DSRP",
-  "release": "0.6.0",
-  "source_tests": {
-    "count": 96,
-    "log": "validation/source_tests.txt",
-    "status": "PASS"
-  },
-  "status": "PASS",
-  "stream_control": "DSRE",
-  "wheel": {
-    "bytes": 57137,
-    "file": "isql_dsr_runtime-0.6.0-py3-none-any.whl",
-    "sha256": "96bb2dd82fb44b1f4e4a0a3a0d12429ebcb6449c96031976d8800742d6f3f268"
-  }
+  "unicode_escape_roundtrip_used": false,
+  "human_readable_canonical_required": false
 }

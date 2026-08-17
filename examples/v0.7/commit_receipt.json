@@ -1,0 +1,45 @@
+{
+  "status": 1,
+  "program_ref": 2,
+  "base_hashes": [
+    [
+      10,
+      "e9204b1aaf8f170e2c38a0b5388b19955245bebe67777982404eb151ddf64048"
+    ],
+    [
+      11,
+      "19b017b856c1738eea2f338167d0822788eb258ad554f7f94fef8540bd6c980c"
+    ]
+  ],
+  "final_hashes": [
+    [
+      10,
+      "a46db13c00dfd0a323daeac5a65a8c40f5ab4f6f149710f1c5b2b0d49fe7460b"
+    ],
+    [
+      11,
+      "e5ba0fe89392bd0422a2ac7f90177d0b8ac68d4bc2b12e89f047fb0795c1376a"
+    ]
+  ],
+  "execution_trace": [
+    [
+      2,
+      6
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      5
+    ],
+    [
+      2,
+      7
+    ]
+  ],
+  "failed_program_ref": 0,
+  "failed_instruction_ref": 0,
+  "error_code": ""
+}
